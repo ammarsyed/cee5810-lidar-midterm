@@ -210,6 +210,20 @@ One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom
   | R_3D/R_2D vs 1/cos ε | match to 7e-16 |
 - One 3D scan (5,760 rays, mirror + glass): **3.1 ms**.
 
-**Tests:** 107 passed. 3D tests cover Embree vs Möller–Trumbore, the slice identity, 1/cos ε, floor ring + tilt, blind zone at 1.12 m, 3D ghost theorem and speed. Experiment smoke tests now include E11–E13.
+**Tests:** 104 passed. 3D tests cover Embree vs Möller–Trumbore, the slice identity, 1/cos ε, floor ring + tilt, blind zone at 1.12 m, 3D ghost theorem and speed. Experiment smoke tests now include E11–E13.
 
 **Next:** Stage 9 (slider demo + notebook).
+
+## 2026-10-19 — Stage 9a: interactive slider demo ✅
+
+**Done**
+- `experiments/interactive.py`:
+  - `build()`: scene + FOV + visible region + scan on the left, polar profile on the right, and a readout (detected / dropouts / ghosts / through-glass / nearest)
+  - 7 sliders (x, y, θ, fog, mirror angle, box position, box ρ), a return-policy radio, check boxes (rays, FOV, visible region, ghost sources, noise) and a "new noise" button
+  - `set_values()` (batched update), `launch()` (desktop or notebook via ipympl)
+  - `record()` / `--record PATH`: scripted sweep (drive, then fog ramp, then mirror rotation) → MP4/GIF
+- `figures/ammar/demo.mp4` recorded (120 frames, ~33 s to render)
+
+**Tests:** 2 new (headless build, fog lowers detections, sensor move changes the scan, variant_b builds).
+
+**Next:** Stage 9b (notebook).
