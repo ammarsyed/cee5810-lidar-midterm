@@ -236,3 +236,17 @@ One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom
 - Executes headless with `uv run jupyter nbconvert --to html --execute notebooks/lidar_walkthrough.ipynb` in **~24 s** with no errors. Summary: E1 4.4e-16 m, E2 1.000, E4 4.6e-13 m, E5 2.5e-15 m, E6 7.8e-16, E7 4.7e-13 m, E8 KS p 0.65, E11 corridor 5.4 vs 1.2 cm (3 seeds), E13 1.3e-15 m.
 
 **Next:** Stage 10 stretch (E9 CW phase, E10 beam divergence) and Stage 11 polish.
+
+## 2026-10-19 — Stage 10: stretch experiments E9 (CW phase) + E10 (beam divergence) ✅
+
+**Done**
+- `lidar_sim/phase.py`: ambiguity_range, phase_of, phase_range, two_frequency_range (beat unwrap + f1 refine), mixed_range (linear / exact phasor)
+- **E9**:
+  - R_amb = 3.22 / 2.82 m; beat 22.54 m
+  - two-frequency unwrap RMS **0.99 cm** (the 1 cm noise)
+  - 0.4% unwrap failures, only within 7 cm of 0 m and at 22.4–22.5 m (edges of the unambiguous interval)
+- **E10**:
+  - 3 sub-rays (5 mrad half-angle) at a box edge; 229 mixed-pixel beams between box and wall
+  - linear vs phasor differ by up to 6.8 cm; D12 example reproduced (1.30 vs 1.23 m)
+
+**Tests:** 113 passed.

@@ -1,0 +1,8 @@
+| quantity | value |
+|---|---|
+| beam half-angle [mrad] | 5 |
+| near / far [m] | 2.0 / 3.0 |
+| beams with mixed pixels (linear) | 229 |
+| max |linear − phasor| [m] | 0.06845 |
+| D12 example (1 m, 2 m; w 0.7/0.3): linear vs phasor [m] | 1.30 vs 1.23 |
+| gap between surfaces [m] | 1 |

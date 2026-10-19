@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import pytest  # noqa: E402
 
 EXPERIMENTS = ["e1_sensor_position", "e2_sensor_heading", "e3_moving_target", "e4_reflectivity", "e5_mirror",
-               "e6_glass", "e7_fog", "e8_noise_mc", "e_bn_cpt", "e12_3d_fov", "e13_2d3d_consistency"]
+               "e6_glass", "e7_fog", "e8_noise_mc", "e_bn_cpt", "e12_3d_fov", "e13_2d3d_consistency", "e9_cw_phase", "e10_divergence"]
 
 
 @pytest.mark.parametrize("scene", ["default", "variant_b"])
