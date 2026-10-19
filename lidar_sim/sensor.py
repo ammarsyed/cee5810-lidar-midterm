@@ -53,6 +53,7 @@ class ScanResult:
     is_ghost: np.ndarray  # chosen return involved >= 1 mirror/glass reflection
     surface_id: np.ndarray  # surface of the chosen return (-1 if none)
     returns: Returns
+    transmitted: np.ndarray = None  # chosen return passed through >= 1 glass pane
 
 
 def _poses(poses):
@@ -106,6 +107,7 @@ def trace_beams(world, poses, params=LidarParams(), beam_idx=None, t=0.0):
         "p_detect": p_det.reshape(shape),
         "true_hit": pick(ret.hit_point, np.nan).reshape(shape + (2,)),
         "is_ghost": (pick(ret.reflections, 0) > 0).reshape(shape),
+        "transmitted": (pick(ret.interactions - ret.reflections, 0) > 0).reshape(shape),
         "surface_id": np.where(has, pick(ret.surface_id, -1), -1).reshape(shape),
         "dirs": u,
         "returns": ret,
@@ -132,7 +134,7 @@ def scan(world, pose, params=LidarParams(), rng=None, noise=True, t=0.0, beam_id
     return ScanResult(pose=pose, beam_angles=beta, ranges=z, true_ranges=true_range, detected=det,
                       power=r["power"][0], p_detect=p_det, points_world=pose[:2] + z[:, None] * u,
                       true_hits=r["true_hit"][0], is_ghost=r["is_ghost"][0], surface_id=r["surface_id"][0],
-                      returns=r["returns"])
+                      returns=r["returns"], transmitted=r["transmitted"][0])
 
 
 def expected_scan(world, poses, params=LidarParams(), beam_idx=None, t=0.0):

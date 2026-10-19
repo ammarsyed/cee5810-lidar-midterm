@@ -128,3 +128,31 @@ One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom
 **Tests:** 66 passed. Includes pure-pursuit controls reproducing poses, motion noise std, and the moving box changing the scan.
 
 **Next:** Stage 6.
+
+## 2026-10-19 — Stage 6: experiments E1–E8 + BN CPT + params table ✅
+
+**Done**
+- `experiments/common.py`:
+  - `--person ammar|partner` maps to the default / variant_b scene and `figures/<person>/`
+  - per-scene presets, so media are distinct
+  - CSV + Markdown tables; `finish()` saves everything
+- Experiments. Each has `run()` for the notebook plus a CLI.
+
+  | Exp. | What it shows |
+  |---|---|
+  | **E1** | closed form matches to 4e-16 m; parallel motion → constant range; dark-wall dropouts; occlusion |
+  | **E2** | FOV prediction vs simulation: 100% agreement (default), 99.4% (variant_b: one discrete-beam edge case) |
+  | **E3** | predicted box-on-beam intervals == simulated |
+  | **E4** | analytic vs simulated R_max(ρ) to 1e-13; per-beam MC detection RMS 0.018; R₀√cos θ to 3e-13 |
+  | **E5** | ghost theorem 2.5e-15 m (noise-free); ghost noise std 1.00 cm; mirror-angle sweep |
+  | **E6** | T_pane² matches Fresnel to 8e-16; glass reported only ≤ 4–5° from head-on; through-glass points in the room |
+  | **E7** | fog max range matches W₀(αR₀)/α to 5e-13 m; room detection 0.53 → 0 by α = 0.25 |
+  | **E8** | KS p = 0.65; σ̂ = 1.003 cm; all 95% CIs contain 1 cm; \|bias\| ≤ 1 mm |
+  | **CPT** | P(D \| material, fog, range) by Monte Carlo (mirror/glass ≈ 5–12% detected at random incidence) |
+  | params_table | all parameters and scene surfaces, for the Procedure section |
+- Tracer: records the `reflector` surface; child path length includes the self-offset (exact ghost theorem). Scans flag `transmitted` (seen through glass).
+- Scenes: variant_b mirror re-angled to 135° (so it produces ghosts); trajectories carry their `period`.
+
+**Tests:** 85 passed in ~5 s, including every experiment in fast mode for both scenes.
+
+**Next:** Stage 7, localization.

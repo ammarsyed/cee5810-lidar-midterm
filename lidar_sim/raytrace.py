@@ -31,6 +31,7 @@ class Returns:
     reflections: np.ndarray  # mirror/glass reflections before this return (ghost if > 0)
     interactions: np.ndarray  # all mirror/glass interactions (reflections + transmissions)
     theta_inc: np.ndarray
+    reflector: np.ndarray  # surface id of the last reflecting surface (-1 if none)
 
     def __len__(self):
         return len(self.beam_idx)
@@ -40,7 +41,7 @@ def _concat(parts, d):
     if not parts:
         e = np.zeros(0)
         return Returns(e.astype(int), e, e, np.zeros((0, d)), np.zeros((0, d)), e.astype(int), e.astype(int),
-                       e.astype(int), e.astype(int), e)
+                       e.astype(int), e.astype(int), e, e.astype(int))
     cols = list(zip(*parts))
     return Returns(*(np.concatenate(c) for c in cols))
 
@@ -64,6 +65,7 @@ def trace(backend, origins, dirs, *, fog_alpha=0.0, max_bounces=config.MAX_BOUNC
     T = np.ones(M)
     n_ref = np.zeros(M, dtype=int)
     n_int = np.zeros(M, dtype=int)
+    refl_id = np.full(M, -1, dtype=int)
     parts = []
 
     for depth in range(max_bounces + 1):
@@ -73,7 +75,8 @@ def trace(backend, origins, dirs, *, fog_alpha=0.0, max_bounces=config.MAX_BOUNC
         ok = h.hit
         if not ok.any():
             break
-        o, u, beam, L, T, n_ref, n_int = o[ok], u[ok], beam[ok], L[ok], T[ok], n_ref[ok], n_int[ok]
+        o, u, beam, L, T, n_ref, n_int, refl_id = (o[ok], u[ok], beam[ok], L[ok], T[ok], n_ref[ok], n_int[ok],
+                                                   refl_id[ok])
         t, pt, nrm, sid = h.t[ok], h.point[ok], h.normal[ok], h.surface_id[ok]
 
         Lh = L + t
@@ -87,7 +90,7 @@ def trace(backend, origins, dirs, *, fog_alpha=0.0, max_bounces=config.MAX_BOUNC
         def emit(mask, power, kind):
             if mask.any():
                 parts.append((beam[mask], Lh[mask], power[mask], pt[mask], apparent[mask], sid[mask],
-                              np.full(mask.sum(), kind), n_ref[mask], n_int[mask], theta[mask]))
+                              np.full(mask.sum(), kind), n_ref[mask], n_int[mask], theta[mask], refl_id[mask]))
 
         p_diff = base * rho * cosi
         emit((rho > 0) & (p_diff > min_power), p_diff, 0)
@@ -107,7 +110,7 @@ def trace(backend, origins, dirs, *, fog_alpha=0.0, max_bounces=config.MAX_BOUNC
         kids.append((ig, u[ig], T[ig] * (1.0 - RF[ig]) ** 2, 0))
         kids.append((ig, refl[ig], T[ig] * RF[ig], 1))
 
-        no, nu, nb, nL, nT, nr, ni = [], [], [], [], [], [], []
+        no, nu, nb, nL, nT, nr, ni, nf = [], [], [], [], [], [], [], []
         for idx, ndir, nthr, is_ref in kids:
             if len(idx) == 0:
                 continue
@@ -117,15 +120,16 @@ def trace(backend, origins, dirs, *, fog_alpha=0.0, max_bounces=config.MAX_BOUNC
             no.append(pt[idx] + eps_self * ndir)
             nu.append(ndir)
             nb.append(beam[idx])
-            nL.append(Lh[idx])
+            nL.append(Lh[idx] + eps_self)  # the offset start point is eps_self further along the path
             nT.append(nthr)
             nr.append(n_ref[idx] + is_ref)
             ni.append(n_int[idx] + 1)
+            nf.append(sid[idx] if is_ref else refl_id[idx])
         if not no:
             break
         o, u, beam = np.concatenate(no), np.concatenate(nu), np.concatenate(nb)
         L, T = np.concatenate(nL), np.concatenate(nT)
-        n_ref, n_int = np.concatenate(nr), np.concatenate(ni)
+        n_ref, n_int, refl_id = np.concatenate(nr), np.concatenate(ni), np.concatenate(nf)
 
     return _concat(parts, d)
 

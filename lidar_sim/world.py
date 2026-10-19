@@ -44,6 +44,7 @@ def ping_pong(p0, p1, speed, angle=0.0):
         p = p0 + frac * (p1 - p0)
         return float(p[0]), float(p[1]), angle
 
+    traj.period = period
     return traj
 
 

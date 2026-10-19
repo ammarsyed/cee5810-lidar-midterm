@@ -23,6 +23,7 @@ def test_ghost_point_is_reflection_of_true_hit():
     r = s.returns
     sel = (r.reflections == 1) & (r.kind == 0)
     assert sel.sum() > 10  # plenty of ghost returns
+    assert np.all(np.isin(r.reflector[sel], world.surface_ids("mirror")))
     assert np.allclose(r.apparent_point[sel], reflect_point(r.hit_point[sel], m.a, n_hat), atol=1e-9)
     assert s.is_ghost.any()
 
@@ -99,3 +100,14 @@ def test_batched_tracing_speed():
     dt = time.perf_counter() - t0
     print(f"500 poses x 61 beams with mirror + glass: {dt * 1e3:.1f} ms")
     assert dt < 0.5
+
+
+def test_ghost_theorem_with_glass_present_selects_mirror_reflections():
+    world = default_room(with_moving_box=False)  # glass reflections exist too
+    s = scan(world, [6.9, 2.4, np.radians(150)], noise=False)
+    m = [seg for seg in world.segments if seg.name == "mirror"][0]
+    r = s.returns
+    sel = (r.reflections == 1) & (r.kind == 0) & np.isin(r.reflector, world.surface_ids("mirror"))
+    assert sel.sum() > 10
+    assert np.allclose(r.apparent_point[sel], reflect_point(r.hit_point[sel], m.a, segment_normal(m.a, m.b)),
+                       atol=1e-9)

@@ -1,0 +1,6 @@
+quantity,value
+ghost returns checked (noise-free),42
+max |reported − Ref(true hit)| (noise-free) [m],2.5121479338940403e-15
+ghost range error mean [cm],0.0010875574588828747
+ghost range error std [cm],1.0006364258814995
+mirror angle with most ghosts [deg],45
