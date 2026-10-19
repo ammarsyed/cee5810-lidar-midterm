@@ -1,0 +1,24 @@
+[project]
+name = "lidar-sim"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.4",
+    "pillow>=13.0.0",
+    "scipy>=1.18.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.uv]
+# Not an installable package: run everything from this folder
+# (e.g. `uv run pytest`, `uv run python -m experiments.smoke`).
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

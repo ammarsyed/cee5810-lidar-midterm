@@ -1,0 +1,11 @@
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# macOS
+.DS_Store
+
+# Course PDFs (copyrighted papers + assignment) - keep local, don't redistribute
+/*.pdf
