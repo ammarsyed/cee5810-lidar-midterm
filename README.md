@@ -9,7 +9,7 @@ A Python simulation of a 2D scanning LiDAR in a room with matte walls, a mirror,
 
 ## Setup
 
-Requires [uv](https://docs.astral.sh/uv/). uv installs Python 3.12 and the dependencies (numpy, scipy, matplotlib, pillow, pytest) into `.venv/`.
+Requires [uv](https://docs.astral.sh/uv/). uv installs Python 3.12 and the dependencies into `.venv/`: numpy, scipy, matplotlib, pillow, imageio-ffmpeg (bundled ffmpeg for MP4), tqdm, plus pytest, jupyterlab and ipympl for development.
 
 ```bash
 uv sync
@@ -25,11 +25,16 @@ uv run pytest
 
 Experiment scripts (added from Stage 6) run as modules, e.g. `uv run python -m experiments.e1_sensor_position`. Outputs go to `figures/ammar/` or `figures/partner/`.
 
+Slider demo (Stage 7a): `uv run python -m experiments.interactive`. Add `--record figures/ammar/demo.mp4` to save a scripted sweep as a video.
+
+Walkthrough notebook (Stage 7b): `uv run jupyter lab notebooks/lidar_walkthrough.ipynb`.
+
 ## Layout
 
 ```
 lidar_sim/     simulator package (geometry, materials, world, physics, raytrace, sensor, noise, viz)
-experiments/   one script per experiment (E1–E10), generates report media
+experiments/   one script per experiment (E1–E10) + the slider demo, generates report media
+notebooks/     walkthrough notebook (viewer over the package)
 tests/         pytest checks against the analytic results in plan/02_DERIVATIONS.md
 figures/       generated figures and animations, one folder per teammate
 plan/          planning docs

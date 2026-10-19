@@ -41,10 +41,13 @@ That's a solid core. The rubric gaps are below. Each one is filled using course 
 | 10 | **Each teammate needs distinct media + report.** | Stated in bold on page 1 of the assignment. | Share the simulator. **Split the experiments** so each person's figures are their own, and write separately (see §7). |
 | 11 | **Graduate-level (5810) analysis missing.** | 5810 full credit needs a math analysis proving the model captures the Fig. 1 dependencies. | **D11** in `02_DERIVATIONS.md`: partial derivatives / set-membership arguments for each arrow in Fig. 1. |
 
+Also planned, for presenting and exploring:
+- **Interactive slider demo:** a desktop matplotlib window. Drag the sensor, fog, mirror angle and box, and watch the scan update. It can record a scripted sweep straight to MP4, which is great media.
+- **Walkthrough notebook:** a JupyterLab notebook (like HW 2) that runs every experiment inline and embeds the same slider demo. It exports to HTML/PDF for the code appendix.
+
 Optional stretch (only if time):
 - **CW phase ranging + ambiguity**: the Heiden paper's actual method; range "rolls over" past ~3.2 m.
 - **Beam divergence / mixed pixels**: Heiden Fig. 3/5.
-- **Interactive slider demo.**
 
 ---
 
@@ -125,7 +128,8 @@ Each one varies **one** Fig. 1 variable and checks against theory.
 | E7 | **Fog** α | Effective max range & detection rate vs. α; point cloud thinning | Beer–Lambert max-range curve (D5 + D10) |
 | E8 | Noise (Monte Carlo) | Histogram of 1000 repeated scans of one beam; σ_R vs. range | Gaussian N(R, σ_R²) overlay (D6) |
 | E9* | CW phase (stretch) | Range wrap-around at 3.22 m; two-frequency fix | `R_amb = c/2f` (D2) |
-| E10* | Beam divergence (stretch) | Mixed pixels at object edges | Weighted-average model |
+| E10* | Beam divergence (stretch) | Mixed pixels at object edges | Linear vs. phasor mixed-pixel model (D12) |
+| Demo | All of the above, live | Slider demo video (scripted sweep → MP4) + walkthrough notebook | Readouts match the per-experiment results |
 
 ---
 
@@ -180,7 +184,7 @@ Assumes about 7–10 days. Squeeze or stretch as needed.
 | 4 | Stage 4 (mirror + glass) | Start report theory section | Check mirror/glass vs. D8/D9 |
 | 5 | Stage 5 (moving box, animations) | Results "predictions" for each experiment |  |
 | 6 | Stage 6 (experiment scripts + figures) | Write theory section | Divide figures |
-| 7 | Stage 7 (stretch) / bugfix | D11 (required for 5810) | Each starts own report |
+| 7 | Stage 7a/7b (slider demo + notebook); Stage 8 stretch if time | D11 (required for 5810) | Each starts own report |
 | 8–9 | Write own report | Write own report | Swap & proofread for clarity (not content copying) |
 | 10 | Submit | Submit |  |
 

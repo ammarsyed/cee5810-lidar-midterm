@@ -24,10 +24,27 @@
 
 ## 2. Tech stack & setup
 
-- **Python 3.11+** via `uv`. System Python here is 3.9 with no scipy, so make a project env.
-- Dependencies: `numpy`, `scipy` (Lambert W, normal CDF), `matplotlib` (plots + animation), `pillow` (GIF export, no ffmpeg needed), `pytest`.
-- Optional: `imageio-ffmpeg` (MP4 export without a system ffmpeg).
-- Version control: `git init` in `Midterm/`, commit after every stage.
+- **Python 3.12** via `uv` (`uv sync` installs everything). System Python here is 3.9 with no scipy, so always use the project env.
+- Version control: git in `Midterm/`, commit after every stage.
+
+| Library | Group | Used for |
+|---|---|---|
+| `numpy` | core | all vector math, ray–segment intersection, rotations |
+| `scipy` | core | `special.lambertw` (fog max range, D5/D10), `stats.norm` (detection probability, D6) |
+| `matplotlib` | core | every figure, `FuncAnimation` for videos, `matplotlib.widgets` for the slider demo |
+| `pillow` | core | GIF export |
+| `imageio-ffmpeg` | core | a bundled ffmpeg binary, so MP4 export works with no system install. Set `plt.rcParams["animation.ffmpeg_path"] = imageio_ffmpeg.get_ffmpeg_exe()` once in `viz.py` |
+| `tqdm` | core | progress bars for Monte Carlo runs (E8, CPT estimation) |
+| `pytest` | dev | tests against the derivations |
+| `jupyterlab` | dev | the walkthrough notebook (same as HW 2); `nbconvert` comes with it, for the HTML appendix export |
+| `ipympl` (brings `ipywidgets`) | dev | `%matplotlib widget`, so the **same** slider demo runs inside the notebook |
+
+**Considered and skipped on purpose:**
+- **shapely:** ray–segment intersection *is* derivation D3(c), so we write and test it ourselves.
+- **pgmpy:** HW 2 did BNs by hand, and our CPT is just Monte Carlo counting.
+- **PyBullet / Open3D / Gazebo ray casting:** no mirror/glass physics. Using an existing simulator would also put us on the assignment's "adopt an existing sensor sim" path, which needs extra validation.
+- **Streamlit / web UI:** not graded, and the slider demo plus notebook cover it.
+- **pandas / seaborn:** numpy + csv + matplotlib are enough.
 
 ## 3. Repo layout
 
@@ -51,8 +68,11 @@ Midterm/
 ├── experiments/
 │   ├── e1_sensor_position.py
 │   ├── e2_sensor_heading.py
-│   ├── …                     ← one script per experiment
+│   ├── …                     ← one script per experiment, each exposes run(...) + a CLI
+│   ├── interactive.py        ← slider demo window (Stage 7a), launch() also works in the notebook
 │   └── common.py             ← shared CLI args (--scene, --seed, --out, --style)
+├── notebooks/
+│   └── lidar_walkthrough.ipynb  ← thin "viewer" over the package (Stage 7b), exported to HTML for the appendix
 ├── tests/
 │   ├── test_geometry.py
 │   ├── test_physics.py
@@ -223,15 +243,21 @@ Rough sizes: **S** ≈ small session, **M** ≈ medium, **L** ≈ big (maybe spl
 **Goal:** time.
 - `world.py`: `MovingBox(trajectory: Callable[[t], (x, y, angle)])`; `World.at_time(t)`
 - Sensor paths: waypoint interpolation; heading modes (`follow_path`, `fixed`, `spin`)
-- `viz.animate(frames_fn, out_path, fps)`: a two-panel figure (left: top-down scene + rays + points; right: polar range plot or range-vs-beam), saved as GIF (pillow) and MP4 if ffmpeg is available
+- `viz.animate(frames_fn, out_path, fps)`: a two-panel figure (left: top-down scene + rays + points; right: polar range plot or range-vs-beam), saved as GIF (pillow) and MP4 (ffmpeg from `imageio-ffmpeg`, already installed and tested)
 - Mirror pose can also be time-varying (rotating mirror)
 
 **Done when:** a short GIF of the LiDAR driving through the room while the box moves, with ghosts and glass behaviour visible.
 
-> **Prompt:** *"Read plan/03_CODE_PLAN.md and PROGRESS.md. Do Stage 5: moving box, time-varying world, sensor paths and heading modes, two-panel animation export (GIF; MP4 if possible). Produce one demo GIF, commit, update PROGRESS.md."*
+> **Prompt:** *"Read plan/03_CODE_PLAN.md and PROGRESS.md. Do Stage 5: moving box, time-varying world, sensor paths and heading modes, two-panel animation export (GIF and MP4). Produce one demo GIF + MP4, commit, update PROGRESS.md."*
 
 ### Stage 6 — Experiment scripts (L, split by person)
 **Goal:** the report media. Each script takes `--scene`, `--seed`, `--out figures/<person>/`, so each teammate makes **distinct** figures.
+
+**Structure rule (so the notebook can reuse it):** each script exposes
+- `run(scene="default", seed=0, **overrides) -> dict` with keys `figs` (name → Figure) and `data` (arrays/tables), with no file I/O;
+- a `main()` CLI that calls `run()` and saves to `--out`.
+
+The notebook calls `run()` directly, so there's one source of truth for every figure.
 
 | Script | Produces | Theory overlay |
 |---|---|---|
@@ -249,15 +275,67 @@ Also: a `figures/<person>/params_table.md` dump of all parameters used, for the 
 
 > **Prompt:** *"Read plan/03_CODE_PLAN.md §6 Stage 6 and PROGRESS.md. Implement experiments E1, E3, E5, E7 (+ the BN CPT script) with the shared CLI, theory overlays and consistent figure style, writing to figures/ammar/. Commit, update PROGRESS.md."* (Partner, or a later session: E2, E4, E6, E8 to `figures/partner/` with a different scene variant.)
 
-### Stage 7 — Stretch (optional, M each)
-- **E9 CW phase ranging (D2):** `sensor.phase_range(true_R, f)` with wrap-around; two-frequency unwrap; plot measured vs. true range showing the saw-tooth at 3.22 m and the fix.
-- **E10 beam divergence (D12):** 3 sub-rays per beam, power-weighted range; show mixed pixels at the box edge.
-- **Interactive demo:** matplotlib sliders for sensor x/y/θ, fog α and mirror angle. Great for a screen recording.
+### Stage 7a — Interactive slider demo (M)
+**Goal:** a "UI" you can play with live and screen-record for the media. It's a desktop matplotlib window, not a website.
 
-### Stage 8 — Polish (S)
-- README: install, run every experiment, where outputs go
-- One command, `uv run python -m experiments.run_all --person ammar`, regenerates everything
-- Code cleaned for the report appendix; docstrings cite the D-numbers
+**What it looks like:**
+- **Left panel:** the top-down room, with the sensor, FOV wedge, rays, reported points, and ghost points highlighted.
+- **Right panel:** a polar range plot of the current scan.
+- **Readout line:** # detected, # dropouts, # ghosts, nearest range.
+
+**Controls (`matplotlib.widgets`):**
+- Sliders: sensor `x`, `y`, heading `θ`; fog `α`; mirror angle; box position; box reflectivity `ρ`.
+- Radio buttons: return policy (`strongest` / `first`).
+- Check boxes: show rays / FOV / visibility polygon / true hit points / noise on-off.
+- A "new noise sample" button (re-draws the scan with a fresh RNG seed).
+
+**Code:**
+- `experiments/interactive.py`: `build(world=None, params=None) -> (fig, controls)`, `launch()`, `main()`.
+- Every slider change re-runs `sensor.scan()` and updates the artists in place (241 beams is fast enough; no threading).
+- `--record out.mp4`: plays a scripted sweep of the sliders (e.g. drive the sensor, then ramp the fog, then rotate the mirror) and saves it with `FuncAnimation`. You get a **reproducible demo video** without manual screen recording. Manual capture on macOS is Cmd+Shift+5.
+- Tests: `build()` works under the Agg backend, and setting a slider value changes the scan (e.g. raising `α` lowers the detection count).
+
+**Done when:** `uv run python -m experiments.interactive` opens a working window, and `--record figures/ammar/demo.mp4` writes a video.
+
+> **Prompt:** *"Read plan/03_CODE_PLAN.md (Stage 7a) and PROGRESS.md. Build the interactive slider demo in experiments/interactive.py with the listed controls, the --record scripted-sweep MP4 option, and the Agg-backend tests. Commit, update PROGRESS.md."*
+
+### Stage 7b — Walkthrough notebook (M)
+**Goal:** a notebook that tells the whole story with figures inline. Your partner can explore in it, and it can be exported as the code appendix (like HW 2).
+
+**Rule:** the notebook is a **viewer**. It contains no physics. Every cell calls the package or an experiment's `run()`.
+
+**`notebooks/lidar_walkthrough.ipynb` sections:**
+1. **Setup:** imports, `%matplotlib inline`, and a sys.path fix so the kernel finds `lidar_sim` when started from `notebooks/`. Plus a global seed.
+2. **The sensor & scene:** parameter table, scene drawing.
+3. **One scan, explained:** rays, returns, ghost vs. true points, a dropout.
+4. **Sensor state → Z:** E1, E2.
+5. **Target state & features → Z:** E3, E4.
+6. **Mirror & glass:** E5, E6.
+7. **Operating conditions → Z:** E7.
+8. **Noise model check:** E8.
+9. **Bayesian network:** CPT table + heatmap from `e_bn_cpt.run()`.
+10. **Play with it:** `%matplotlib widget`, then `interactive.launch()` (the same slider demo as 7a, via ipympl).
+11. **Summary table:** each theory prediction vs. simulated result (numbers for the report).
+
+**Export for the appendix:**
+```bash
+uv run jupyter nbconvert --to html --execute notebooks/lidar_walkthrough.ipynb
+```
+Open the HTML in a browser and print to PDF.
+
+**Done when:** "Restart & Run All" works top to bottom, the nbconvert command above succeeds, and the figures match the scripts' outputs for the same seed.
+
+> **Prompt:** *"Read plan/03_CODE_PLAN.md (Stage 7b) and PROGRESS.md. Create notebooks/lidar_walkthrough.ipynb following the section list, as a thin viewer over experiments' run() functions and interactive.launch(). Execute it with nbconvert to HTML to verify. Commit (with outputs cleared or kept, your call), update PROGRESS.md."*
+
+### Stage 8 — Stretch (optional, M each)
+- **E9 CW phase ranging (D2):** `sensor.phase_range(true_R, f)` with wrap-around; two-frequency unwrap; plot measured vs. true range showing the saw-tooth at 3.22 m and the fix.
+- **E10 beam divergence (D12):** 3 sub-rays per beam; linear and phasor range models; show mixed pixels at the box edge.
+- Add a slider and a notebook section for whichever of these gets built.
+
+### Stage 9 — Polish (S)
+- README: install, run every experiment, the slider demo, the notebook, and where outputs go
+- One command, `uv run python -m experiments.run_all --person ammar`, regenerates everything (figures + demo MP4)
+- Code cleaned for the report appendix; docstrings cite the D-numbers; executed notebook HTML/PDF ready
 - Final test run, final commit, tag `v1-submission`
 
 ---
@@ -268,7 +346,7 @@ Also: a `figures/<person>/params_table.md` dump of all parameters used, for the 
 - **Always start a session with:** "Read plan/03_CODE_PLAN.md and PROGRESS.md, then do Stage N." That's enough context. You don't need to re-explain the project.
 - **PROGRESS.md entry format:** date, stage, what was done, files touched, test status, known issues, next step.
 - **Commit after each stage**, so a bad session is easy to roll back.
-- **Minimum viable project** if time gets tight: Stages 0–4 plus E1, E5, E6, E7, E8. That already covers sensor state, target features, operating conditions, noise, FOV/LOS, mirror and glass. E3 (moving box) is the next most valuable, because it's the target-state arrow in Fig. 1.
+- **Minimum viable project** if time gets tight: Stages 0–4 plus E1, E5, E6, E7, E8. That already covers sensor state, target features, operating conditions, noise, FOV/LOS, mirror and glass. E3 (moving box) is the next most valuable, because it's the target-state arrow in Fig. 1. Stages 7a/7b are cheap once Stage 6 exists, because they only reuse `scan()` and the `run()` functions. Do them before any Stage 8 stretch work.
 
 ## 8. Order vs. the math
 
@@ -279,6 +357,7 @@ Also: a `figures/<person>/params_table.md` dump of all parameters used, for the 
 | 3 | D1, D5, D6, D10 |
 | 4 | D8, D9 |
 | 6 | all of the above (for theory overlays), D7 for the CPT script |
-| 7 | D2, D12 |
+| 7a, 7b | nothing new (they reuse Stages 1–6) |
+| 8 | D2, D12 |
 
 The equations are already written in `02_DERIVATIONS.md`, so coding doesn't have to wait for the partner's write-up. The partner's job is to **derive and explain** them for the report, and to flag anything that should change.

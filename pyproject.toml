@@ -3,14 +3,18 @@ name = "lidar-sim"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "imageio-ffmpeg>=0.6.0",
     "matplotlib>=3.11.2",
     "numpy>=2.5.4",
     "pillow>=13.0.0",
     "scipy>=1.18.1",
+    "tqdm>=4.70.1",
 ]
 
 [dependency-groups]
 dev = [
+    "ipympl>=0.10.0",
+    "jupyterlab>=4.6.4",
     "pytest>=9.1.1",
 ]
 

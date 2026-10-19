@@ -41,3 +41,13 @@ def test_scientific_stack():
     fig, ax = plt.subplots()
     ax.plot([0, 1], [0, 1])
     plt.close(fig)
+
+
+def test_video_export_available():
+    import os
+
+    import imageio_ffmpeg
+    import tqdm  # noqa: F401  (Monte Carlo progress bars)
+
+    # Bundled ffmpeg lets matplotlib write MP4s with no system install.
+    assert os.path.exists(imageio_ffmpeg.get_ffmpeg_exe())

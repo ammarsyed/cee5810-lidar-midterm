@@ -39,3 +39,22 @@ One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom
 - New values recomputed independently in this session before porting. `plan/03_CODE_PLAN.md`: mirror lobe uses R_m; Stage 3 tests check the D10 table and dR_max/dα.
 
 **Next:** Stage 1 (unchanged).
+
+## 2026-10-19 — Libraries + demo/notebook added to the plan ✅
+
+**Done**
+- New libraries:
+  - core: `imageio-ffmpeg` (bundled ffmpeg, so MP4 export works; tested a matplotlib MP4 + GIF), `tqdm`
+  - dev: `jupyterlab`, `ipympl` (+ `ipywidgets`)
+- Resolves the Stage 0 "no MP4" note.
+- `plan/03_CODE_PLAN.md`:
+  - §2 is now a library table with the ones deliberately skipped
+  - Stage 6 scripts must expose `run()` for reuse
+  - new **Stage 7a** slider demo (`experiments/interactive.py`, `--record` → MP4)
+  - new **Stage 7b** walkthrough notebook (`notebooks/lidar_walkthrough.ipynb`, nbconvert → HTML appendix)
+  - stretch is now Stage 8, polish Stage 9
+- `plan/01_PROJECT_PLAN.md` and README updated to match. Added `notebooks/`.
+
+**Tests:** `uv run pytest` → all pass.
+
+**Next:** Stage 1 (unchanged).
