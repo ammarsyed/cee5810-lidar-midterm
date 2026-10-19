@@ -191,3 +191,23 @@ def legend_below(ax, ncol=3, **kw):
     seen = dict(zip(labels, handles))
     if seen:
         ax.legend(seen.values(), seen.keys(), loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=ncol, **kw)
+
+
+def animate(fig, update, n_frames, out_path, fps=10, dpi=None):
+    """Render update(k) for k in range(n_frames) to a GIF (pillow) or MP4 (bundled ffmpeg).
+
+    GIFs default to a lower dpi (80) to keep files small; MP4s default to 130.
+    """
+    from matplotlib.animation import FFMpegWriter, FuncAnimation, PillowWriter
+
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    anim = FuncAnimation(fig, update, frames=n_frames, blit=False)
+    if out_path.suffix == ".mp4":
+        writer = FFMpegWriter(fps=fps, bitrate=2400)
+    else:
+        writer = PillowWriter(fps=fps)
+    if dpi is None:
+        dpi = 130 if out_path.suffix == ".mp4" else 80
+    anim.save(out_path, writer=writer, dpi=dpi)
+    return out_path

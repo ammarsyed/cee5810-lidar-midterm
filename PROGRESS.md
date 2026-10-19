@@ -113,3 +113,18 @@ One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom
 **Tests:** 62 passed. Speed: 500 poses × 61 beams with mirror + glass = **18.6 ms**.
 
 **Next:** Stage 5.
+
+## 2026-10-19 — Stage 5: moving target, paths, animation ✅
+
+**Done**
+- `localization/motion.py`: unicycle_step (deterministic, vectorised) + sample_motion (D13a)
+- `paths.py`:
+  - waypoint_path (follow_path / fixed / spin headings)
+  - pure_pursuit: unicycle driver returning poses + controls that reproduce them exactly
+- `viz.animate` (GIF via pillow at 80 dpi, MP4 via the bundled ffmpeg)
+- `experiments/demo_animation.py` → `figures/demo_drive.{gif,mp4}`: driving through the default room with the moving box, ghosts and glass
+- GIF/MP4 git-ignored (DECISIONS #6)
+
+**Tests:** 66 passed. Includes pure-pursuit controls reproducing poses, motion noise std, and the moving box changing the scan.
+
+**Next:** Stage 6.

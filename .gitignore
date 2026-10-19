@@ -9,3 +9,9 @@ __pycache__/
 
 # Course PDFs (copyrighted papers + assignment) - keep local, don't redistribute
 /*.pdf
+
+# Generated animations (regenerate with experiments.run_all); PNG figures are tracked
+figures/**/*.gif
+figures/**/*.mp4
+figures/*.gif
+figures/*.mp4
