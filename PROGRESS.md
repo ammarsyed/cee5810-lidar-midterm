@@ -96,3 +96,20 @@ One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom
 **Tests:** 35 passed (D3 closed form, hit/miss/parallel/behind, batch == single, chunking, closed room, rotations, Möller–Trumbore).
 
 **Next:** Stage 2.
+
+## 2026-10-19 — Stages 2–4: sensor/FOV/LOS, power/noise/fog, batched mirror+glass tracer ✅
+
+**Done**
+- `physics.py`: reflect, fresnel (TIR-safe), pane_transmission, fog_transmission, diffuse/specular power, clear_max_range, max_range (Lambert W₀), dmax_range_dalpha
+- `noise.py`: range_noise_std, detection_prob (Φ), sample_measurement
+- `raytrace.py`:
+  - `trace()` is batched breadth-first: one backend call per bounce depth, diffuse + specular-lobe returns, mirror/glass child rays, pruning
+  - `select()` implements the strongest/first policies
+- `sensor.py`: LidarParams, ScanResult, beam_directions (single or many poses), to_world, trace_beams, scan, expected_scan, in_fov (with LOS, glass transparent), visibility_polygon
+- `viz.py`: draw_scan (real / ghost / true source / dropouts), polar_ranges, legend_below. The FOV is now an outline and the visibility polygon is filled.
+- `experiments/demo_scan.py` → `figures/demo_scan.png`: 13 ghosts outside the room, linked to their true sources on the top wall
+- Scene change: mirror at 45° (DECISIONS #3)
+
+**Tests:** 62 passed. Speed: 500 poses × 61 beams with mirror + glass = **18.6 ms**.
+
+**Next:** Stage 5.

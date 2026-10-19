@@ -25,8 +25,8 @@ def default_room(
     with_glass=True,
     with_behind_glass=True,
     with_moving_box=True,
-    mirror_center=(6.8, 4.4),
-    mirror_angle_deg=120.0,
+    mirror_center=(6.6, 4.2),
+    mirror_angle_deg=45.0,
     mirror_length=1.6,
     box_rho=0.5,
     box_path=((1.2, 4.6), (5.2, 4.6)),
@@ -36,7 +36,8 @@ def default_room(
     """8 m x 6 m room (Ammar's scene). See plan/01_PROJECT_PLAN.md section 5.
 
     - matte walls (rho 0.7) with a dark section (rho 0.1, bottom) and a bright one (rho 0.9, top)
-    - mirror on the right (rotatable via mirror_angle_deg = direction of the mirror line)
+    - mirror on the right at 45 deg, so reflections hit the nearby top wall and ghosts appear once
+      the sensor is within ~3 m (rotatable via mirror_angle_deg = direction of the mirror line)
     - vertical glass pane at x = 4.2 with a box behind it
     - a box moving back and forth along y = 4.6
     """
