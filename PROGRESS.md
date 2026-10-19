@@ -80,3 +80,19 @@ One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom
 **Note:** the partner page (artifact) was built before D13/D14 existed, so it doesn't include them yet.
 
 **Next:** Stage 1. Geometry + the backend interface + the vectorised `Segments2D` backend, matte room, smoke figure, D3 tests.
+
+## 2026-10-19 — Stage 1: geometry + 2D backend + matte room ✅
+
+**Done**
+- `config.py` (all constants)
+- `geometry.py`: rot2d, rot3d (ZYX), cross2, wrap_angle, vectorised ray–segment (D3c), Möller–Trumbore (D14c), reflect_point
+- `materials.py`: Material + presets + MaterialArrays
+- `backends/base.py` (Hits, protocol) and `backends/segments2d.py` (vectorised, chunked, normals flipped to face the ray)
+- `world.py`: Segment, box_segments, ping_pong, MovingBox, World with at_time, backend(opaque_only), naive(), with_fog
+- `scenes.py`: default_room, variant_b, glass_corridor, single_wall, glass_test
+- `viz.py`: style + palette, draw_world, draw_sensor, draw_rays, draw_fov, draw_visibility, save
+- `experiments/smoke.py` → `figures/smoke.png`
+
+**Tests:** 35 passed (D3 closed form, hit/miss/parallel/behind, batch == single, chunking, closed room, rotations, Möller–Trumbore).
+
+**Next:** Stage 2.
