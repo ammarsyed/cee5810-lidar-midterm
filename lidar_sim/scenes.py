@@ -99,22 +99,27 @@ def variant_b(
     return World(segs, movers, fog_alpha, "variant_b")
 
 
-def glass_corridor(with_mirror=True, fog_alpha=0.0):
-    """10 m x 6 m: a 2.5 m corridor (bottom) separated from a room by a full-length glass wall.
+def glass_corridor(with_mirror=True, fog_alpha=0.0, length=14.0):
+    """length x 6 m: a 2.5 m corridor (bottom) separated from a room by a full-length glass wall.
 
-    Used for localization (E11). Inside the corridor the walls are parallel, so along-corridor
-    (x) information mostly comes from objects seen *through* the glass (D3 insight + D13).
+    Used for localization (E11). Inside the corridor the walls are parallel, so along-corridor (x)
+    information comes from the end walls when they are within range, and otherwise ONLY from objects
+    seen *through* the glass (D3 insight + D13). With 14 m and a 5.6 m max range, the middle ~4 m of
+    the corridor has no end wall in range.
     """
+    L = float(length)
     segs = [
-        _wall(0, 0, 10, 0),
-        _wall(10, 0, 10, 6),
-        _wall(10, 6, 0, 6),
+        _wall(0, 0, L, 0),
+        _wall(L, 0, L, 6),
+        _wall(L, 6, 0, 6),
         _wall(0, 6, 0, 0),
-        Segment((0, 2.5), (10, 2.5), glass(), "glass"),
+        Segment((0, 2.5), (L, 2.5), glass(), "glass"),
     ]
     if with_mirror:
-        segs.append(Segment((9.95, 0.4), (9.95, 2.1), mirror(), "mirror"))
-    for c, size, ang in [((2.5, 4.0), (0.8, 0.6), 0.2), ((5.5, 3.6), (0.6, 0.6), 0.0), ((7.8, 4.4), (0.9, 0.5), -0.4)]:
+        segs.append(Segment((L - 0.05, 0.4), (L - 0.05, 2.1), mirror(), "mirror"))
+    objs = [((2.5, 4.0), (0.8, 0.6), 0.2), ((5.2, 3.6), (0.6, 0.6), 0.0), ((7.0, 4.3), (0.9, 0.5), -0.4),
+            ((8.8, 3.5), (0.5, 0.7), 0.5), ((11.5, 4.1), (0.8, 0.6), 0.1)]
+    for c, size, ang in objs:
         segs += box_segments(c, size, ang, matte(0.8, "object"), "object")
     return World(segs, [], fog_alpha, "glass_corridor")
 

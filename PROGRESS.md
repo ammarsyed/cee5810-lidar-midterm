@@ -156,3 +156,29 @@ One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom
 **Tests:** 85 passed in ~5 s, including every experiment in fast mode for both scenes.
 
 **Next:** Stage 7, localization.
+
+## 2026-10-19 — Stage 7: particle-filter localization (E11) ✅
+
+**Done**
+- `localization/likelihood.py`:
+  - make_model (naive = mirror/glass → opaque matte)
+  - beam_log_likelihood in the log domain, robust mixture (ε = 0.05, ε_∅ = 0.01) with an exact no-mixture mode
+  - log_likelihood (tempering); mixture_gap
+- `localization/particle_filter.py`: ParticleFilter (predict, update with N_eff-triggered low-variance resampling + roughening, estimate with circular mean), init_particles
+- `experiments/e11_localization.py`:
+  - three filters on identical data (N1 naive, N2 naive + mixture, P physics-aware), 20 seeds, M = 300, 31 beams, σ_lik = 5 cm
+  - figures: error vs time (median + IQR, log scale), N_eff, particle snapshots, `e11_particles.gif`
+  - tables
+- **Results** (mean position RMSE over 20 runs):
+
+  | Scene | N1 | N2 | P | Naive mispredicts |
+  |---|---|---|---|---|
+  | glass corridor | 35 cm | 11.6 cm | **1.1 cm** | 40% of beams |
+  | default room | 33 cm | 0.97 cm | **0.69 cm** | 15% of beams |
+
+  The corridor error plot shows N2 drifting exactly where no end wall is within range: through-glass beams are its only along-corridor information.
+- D13 updated (σ_lik) and D5 updated (K_s). DECISIONS #7–9.
+
+**Tests:** 92 passed. Includes convergence, unbiased resampling, naive == physics without specular surfaces, mixture bound 6.745 / 8.35 nats, circular mean, and update speed (5.3 ms).
+
+**Next:** Stage 8 (3D).

@@ -183,6 +183,8 @@ R_max(α) = W₀(α R₀) / α          (W₀ = principal branch of the Lambert 
 Check that it → `R₀` as `α → 0`: use `W₀(y) = y − y² + …`.
 
 **Specular surfaces (mirror/glass) hit head-on:** a perfectly smooth surface only sends light back to the sensor if `θ_inc ≈ 0`. We model this as a narrow "specular lobe". This is a **modelling assumption**, so state it as one:
+
+In the code, `K_s/K = 1/(2θ_w²) ≈ 730` for θ_w = 1.5°. That comes from treating the lobe as a Gaussian normalised over solid angle and comparing it with the Lambertian 1/π lobe. Consequence: head-on glass (R_F = 0.04) is the strongest return out to ≈ 4.9° and above threshold to ≈ 5.0°, so glass appears as a ~10-beam blip (E6).
 ```
 P_r,spec = K_s · R_s(θ_inc) · exp(−θ_inc² / (2 θ_w²)) / R²,     θ_w ≈ 1–2°
 R_s = R_m (≈ 0.95) for the mirror,   R_s = R_F(θ_inc) (Fresnel, D9) for glass
@@ -438,6 +440,7 @@ The estimate is the weighted mean, with circular mean for θ.
   ```
 - **Penalty without the mixture:** suppose a beam goes through glass and reads the wall behind, but the naive model expects the glass 1 m closer. With `σ_R = 1 cm`, that single beam costs `(1 / 0.01)² / 2 = 5000` nats of log-likelihood. It overwhelms every other beam, so the filter collapses onto whatever wrong pose "explains" it.
 - **With the mixture**, the penalty per beam is bounded. Peak `log p ≈ 3.64`, floor `log(ε/R_max) ≈ −4.72`, so at most **≈ 8.35 nats** per beam.
+- **In the code (E11):** the filter uses an inflated likelihood width `σ_lik = 5 cm`, not the true 1 cm. With M = 300 particles, a 1 cm likelihood is so sharp that one particle takes all the weight (sample impoverishment). With 5 cm the bounded per-beam gap is **≈ 6.75 nats**, versus `(1/0.05)²/2 = 200` nats for a 1 m mismatch without the mixture. State this as an approximation. It's standard practice.
 - **Tempering:** beams aren't truly independent, because neighbouring beams share surfaces and the D7 d-separation note applies. So use every k-th beam, or raise the likelihood to the power `1/k`. State this as an approximation.
 - **The key argument (by inspection):**
   - Naive model + mixture: mirror-ghost and see-through-glass beams become "outliers", so their information is thrown away.
