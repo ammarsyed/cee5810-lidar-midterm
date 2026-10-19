@@ -12,7 +12,7 @@
 | power noise | σ_P | 0.1 P_th |
 | calibration | K/P_th | 34.84 m² (R_max = 5.6 m at ρ = 0.9) |
 | specular lobe width | θ_w | 1.5° |
-| specular gain | K_s/K | 730 |
+| specular gain | K_s/K | 182 |
 | max bounces | B | 5 |
 | return policy | — | strongest |
 

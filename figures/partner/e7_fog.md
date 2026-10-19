@@ -3,4 +3,4 @@
 | 0.9 | 1.998e-13 |
 | 0.5 | 3.166e-13 |
 | 0.2 | 4.667e-13 |
-| room detection fraction, clear → α=0.5 | 0.60 → 0.10 |
+| room detection fraction, clear → α=0.5 | 0.59 → 0.10 |

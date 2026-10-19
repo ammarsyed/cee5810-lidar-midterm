@@ -250,3 +250,33 @@ One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom
   - linear vs phasor differ by up to 6.8 cm; D12 example reproduced (1.30 vs 1.23 m)
 
 **Tests:** 113 passed.
+
+## 2026-10-19 — Stage 11: polish + review fixes ✅
+
+**Done**
+- `experiments/run_all.py --person ammar|partner [--fast] [--no-anim] [--notebook] [--only …]` regenerates every figure, table and video for that person's scene, plus params_table, demo.mp4 and drive.gif. ~4.5 min each; both run in parallel fine.
+- README rewritten: setup, a run-commands table, an experiments + headline-results table, layout. Status banners added to plans 01 and 03.
+- **Partner-page math review (rounds 2–3) ported into `plan/02_DERIVATIONS.md`:**
+
+  | Item | Change |
+  |---|---|
+  | **D5** | specular gain corrected to energy-conserving **K_s/K = 1/(8θ_w²) ≈ 182** (was 730, which reflected 4× the incident power); new θ_max blip-edge formula; R_s renamed R_spec |
+  | D13(a) | rank-2 noise note |
+  | D13(b) | 3-line derivation (Bayes + Markov + total probability); static-map assumption |
+  | D13(c) | weights carry over, reset only after resampling (the code already did this); multimodal-mean caveat |
+  | D13(d) | Δ_max closed form; mixture R_max = sensor limit; junk mass at ∅ (the code already had ε_∅); degeneracy vs impoverishment wording |
+  | D13(e) | ICP corrected: ghosts are static in the world |
+  | D14(a), (b) | R_y sign; sensor-frame elevation; tilt only 1.65 m straight ahead (values at all azimuths); geometric vs detection coverage |
+  | D14(c), (d) | MT tolerance τ; floor incidence |
+  | D14(e) | no ε = 0 ring in the VLP set (we use a test ring); P_3D = P_2D cos³ε |
+  | Notation | more clashes listed |
+- Code: `config.SPEC_GAIN` = 1/(8θ_w²). Test updated, and a new test checks the blip edge against the closed form (4.32° for glass at 2 m).
+- **All media regenerated for both people with the corrected gain:**
+  - E11 corridor (20 runs): N1 35.9 cm, N2 11.3 cm, **P 0.92 cm**
+  - E11 default room: N1 33.2 cm, N2 0.98 cm, **P 0.70 cm**
+  - E11 variant_b: N1 32.0 cm, N2 1.25 cm, **P 0.84 cm**
+  - E6: glass reported up to 4°
+  - all other closed-form checks unchanged (1e-13 … 1e-16)
+- Notebook re-executed to HTML (summary table intact).
+
+**Tests:** 114 passed.

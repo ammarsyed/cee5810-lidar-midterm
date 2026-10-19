@@ -19,9 +19,11 @@ K_OVER_PTH = R_MAX_REF**2 / RHO_REF  # K / P_th [m^2], ~34.84
 
 # --- Specular lobe for head-on mirror/glass returns (D5, modelling assumption)
 SPEC_LOBE_DEG = 1.5  # theta_w
-# Gaussian lobe normalised over solid angle, relative to a Lambertian (1/pi) lobe:
-# K_s / K = 1 / (2 theta_w^2)  (~730 for 1.5 deg). See DECISIONS_NEEDED.md.
-SPEC_GAIN = 1.0 / (2.0 * np.radians(SPEC_LOBE_DEG) ** 2)
+# The lobe exp(-theta_inc^2 / (2 theta_w^2)) is written in incidence angle, but the mirror direction
+# leaves the surface 2 theta_inc away from the sensor, so in outgoing angle the lobe is 2 theta_w wide.
+# Normalising that Gaussian over solid angle (energy-conserving) and comparing with the Lambertian
+# 1/pi lobe gives K_s / K = 1 / (8 theta_w^2)  (~182 for 1.5 deg). See D5 and DECISIONS_NEEDED.md #2.
+SPEC_GAIN = 1.0 / (8.0 * np.radians(SPEC_LOBE_DEG) ** 2)
 
 # --- Detection (D6) ---------------------------------------------------------
 SIGMA_P_REL = 0.1  # power noise std. dev. as a fraction of P_th

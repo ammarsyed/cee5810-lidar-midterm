@@ -68,9 +68,9 @@ def test_first_vs_strongest_policy():
     strongest = scan(glass_test(0.0), [0, 0, 0], ONE_BEAM, noise=False)
     first = scan(glass_test(0.0), [0, 0, 0], ONE_BEAM.with_(return_policy="first"), noise=False)
     assert np.isclose(first.ranges[0], 2.0) and np.isclose(strongest.ranges[0], 2.0)
-    # at ~4.95 deg the glass lobe (p ~ 1.10) is weaker than the wall behind (p ~ 1.29) but still
-    # above threshold, so the two policies disagree; head-on glass is the strongest out to ~4.9 deg
-    a = 4.95
+    # between ~4.19 and ~4.33 deg the glass lobe is weaker than the wall behind it but still above
+    # threshold, so the two policies disagree. 4.32 deg = theta_w sqrt(2 ln((K_s/K)(K/P_th) R_F / R_g^2)) (D5)
+    a = 4.25
     s_ = scan(glass_test(a), [0, 0, 0], ONE_BEAM, noise=False)
     f_ = scan(glass_test(a), [0, 0, 0], ONE_BEAM.with_(return_policy="first"), noise=False)
     assert s_.ranges[0] > 3.9
@@ -111,3 +111,15 @@ def test_ghost_theorem_with_glass_present_selects_mirror_reflections():
     assert sel.sum() > 10
     assert np.allclose(r.apparent_point[sel], reflect_point(r.hit_point[sel], m.a, segment_normal(m.a, m.b)),
                        atol=1e-9)
+
+
+def test_glass_blip_edge_matches_closed_form():
+    """theta_max = theta_w sqrt(2 ln((K_s/K)(K/P_th) R_F / R_g^2)) for glass at R_g = 2 m (D5)."""
+    from lidar_sim.physics import fresnel_deg
+
+    w = np.radians(config.SPEC_LOBE_DEG)
+    th = np.degrees(w * np.sqrt(2 * np.log(config.SPEC_GAIN * config.K_OVER_PTH * fresnel_deg(4.3) / 4.0)))
+    first = ONE_BEAM.with_(return_policy="first")
+    assert np.isclose(scan(glass_test(th - 0.02), [0, 0, 0], first, noise=False).ranges[0], 2.0, atol=0.01)
+    assert scan(glass_test(th + 0.02), [0, 0, 0], first, noise=False).ranges[0] > 3.9
+    assert np.isclose(config.SPEC_GAIN, 182.4, atol=0.1)

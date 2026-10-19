@@ -57,6 +57,12 @@ Context: we're simulating a **2D scanning LiDAR** in a room with matte walls, a 
 - `Φ` (FOV angle) vs. `Φ_N` (normal CDF)
 - `ε` (mixture weight) vs. `ε_k` (elevation)
 - `φ_j` (azimuth) vs. `φ_r` (roll)
+- `ε` a third time: the Möller–Trumbore tolerance (renamed `τ` in D14c)
+- `η` (Bayes normaliser, D13) vs. `η` (optics efficiency, D5)
+- `h` (mount height) vs. `h` (mirror hit point, D8) vs. `h(·)` (measurement function)
+- `u` (beam direction `u_i`) vs. `u_k` (odometry) vs. `u` (barycentric, D14c); `v` (speed) vs. `v` (barycentric)
+- `x_k` (pose) vs. `x` (x-coordinate)
+- `R_spec` (D5 specular reflectance; written `R_spec` to avoid) `R_s` (s-polarised Fresnel reflectance, D9)
 
 ---
 
@@ -184,10 +190,19 @@ Check that it → `R₀` as `α → 0`: use `W₀(y) = y − y² + …`.
 
 **Specular surfaces (mirror/glass) hit head-on:** a perfectly smooth surface only sends light back to the sensor if `θ_inc ≈ 0`. We model this as a narrow "specular lobe". This is a **modelling assumption**, so state it as one:
 
-In the code, `K_s/K = 1/(2θ_w²) ≈ 730` for θ_w = 1.5°. That comes from treating the lobe as a Gaussian normalised over solid angle and comparing it with the Lambertian 1/π lobe. Consequence: head-on glass (R_F = 0.04) is the strongest return out to ≈ 4.9° and above threshold to ≈ 5.0°, so glass appears as a ~10-beam blip (E6).
+In the code, `K_s/K = 1/(8θ_w²) ≈ 182` for θ_w = 1.5°. Where that comes from:
+- The exponent is written in the incidence angle, but the mirror direction leaves the surface `2θ_inc` away from the direction back to the sensor. So in outgoing angle the lobe is `2θ_w` wide.
+- Normalising that Gaussian over solid angle (`∫ dΩ ≈ 2π(2θ_w)² = 8πθ_w²`) and comparing with the Lambertian `1/π` lobe gives `1/(8θ_w²)`.
+- This keeps the model **energy-conserving**. An earlier draft used `1/(2θ_w²) ≈ 730`, which reflects 4× the incident power.
+
+**Where the glass blip ends:** the glass return stays above threshold while
 ```
-P_r,spec = K_s · R_s(θ_inc) · exp(−θ_inc² / (2 θ_w²)) / R²,     θ_w ≈ 1–2°
-R_s = R_m (≈ 0.95) for the mirror,   R_s = R_F(θ_inc) (Fresnel, D9) for glass
+θ_inc < θ_max = θ_w · sqrt( 2 ln( (K_s/K)(K/P_th) R_F / R_g² ) )
+```
+with `R_g` the distance to the glass. For `R_g = 2 m`, `θ_max ≈ 4.3°`: 5.0° at 1 m, 3.9° at 3 m, so it depends on the scene. The glass is also the *strongest* return up to ≈ 4.2° (with a ρ = 0.7 wall 2 m behind it). So glass appears as a blip about 8 beams wide (E6).
+```
+P_r,spec = K_s · R_spec(θ_inc) · exp(−θ_inc² / (2 θ_w²)) / R²,     θ_w ≈ 1–2°
+R_spec = R_m (≈ 0.95) for the mirror,   R_spec = R_F(θ_inc) (Fresnel, D9) for glass
 ```
 
 **Used in:** E4, E6, E7; code `physics.received_power`, `physics.max_range`.
@@ -412,7 +427,7 @@ y_{k+1} = y_k + Δt·v̂_k sin θ_k
 θ_{k+1} = θ_k + Δt·ω̂_k
 v̂_k = v_k + N(0, σ_v²),   ω̂_k = ω_k + N(0, σ_ω²)
 ```
-This defines `p(x_{k+1} | x_k, u_k)`.
+This defines `p(x_{k+1} | x_k, u_k)`. Note: noise only on `(v, ω)` gives a rank-2 (degenerate) pose noise per step. That's fine for *sampling* (the density is never evaluated). Thrun's velocity motion model adds a third noise term if particles collapse; our roughening after resampling plays that role.
 
 **Show (b) 🟥 the Bayes filter, from Bayes' theorem + the Markov property (L4):**
 ```
@@ -420,18 +435,21 @@ bel(x_k) = η · p(z_k | x_k) · ∫ p(x_k | x_{k−1}, u_k) · bel(x_{k−1}) d
            ─────┬─────         ───────────────┬──────────────────────
             correct (D6)                 predict (motion model)
 ```
-Derive it in two steps:
-1. Apply Bayes' theorem to `p(x_k | z_{1:k}, u_{1:k})`.
-2. Use the Markov assumptions: `z_k` depends only on `x_k`, and `x_k` depends only on `x_{k−1}` and `u_k`.
+Derive it in three lines:
+1. **Bayes' theorem** on the newest measurement: `p(x_k | z_{1:k}, u_{1:k}) = η p(z_k | x_k, z_{1:k−1}, u_{1:k}) p(x_k | z_{1:k−1}, u_{1:k})`.
+2. **Sensor Markov property:** `z_k` depends only on `x_k`, so the first factor is `p(z_k | x_k)`.
+3. **Law of total probability** over `x_{k−1}`, plus the **motion Markov property** (`x_k` depends only on `x_{k−1}`, `u_k`), plus "`u_k` carries no information about `x_{k−1}`": `p(x_k | z_{1:k−1}, u_{1:k}) = ∫ p(x_k | x_{k−1}, u_k) bel(x_{k−1}) dx_{k−1}`.
+
+The filter assumes a **static, known map**. A moving box breaks the Markov assumption unless it is tracked, so E11 uses static scenes. In a dynamic scene, beams hitting unmodelled movers fall to the mixture's junk term.
 
 As a graphical model this is a **dynamic Bayesian network** (an HMM): `x_{k−1} → x_k → z_k`, with `u_k → x_k`. Draw it next to the D7 network: D7 is the inside of each `x_k → z_k` arrow.
 
 **Show (c) 🟥 particle approximation (Monte Carlo localization).** Represent `bel(x_k) ≈ Σ_m w^[m] δ(x − x^[m])` with `M` particles. Each step:
 1. **Predict:** sample `x^[m]_k ~ p(x_k | x^[m]_{k−1}, u_k)`.
-2. **Weight:** `w^[m] ∝ p(z_k | x^[m]_k)` (importance sampling: the proposal is the motion model, so the weight is the likelihood).
+2. **Weight:** `w^[m]_k ∝ w^[m]_{k−1} · p(z_k | x^[m]_k)`, then normalise. This is importance sampling: the proposal is the motion model, so the incremental weight is the likelihood. The weights **carry over** between steps and are reset to `1/M` only after a resample. Resetting every step throws away evidence; in a toy 1D check it gives posterior mean 0.50 instead of the exact 0.67.
 3. **Resample** with the low-variance (systematic) scheme when `N_eff = 1/Σ_m (w^[m])² < M/2`.
 
-The estimate is the weighted mean, with circular mean for θ.
+The estimate is the weighted mean, with circular mean for θ. Caveat: with mirror aliasing the posterior can be multimodal and the weighted mean can fall *between* modes. Then also report the heaviest cluster.
 
 **Show (d) 🟥 the likelihood and why naive models break.**
 - Per beam we use D6. We add a small uniform "junk" component (Thrun's beam model), so one bad beam can't zero out a particle:
@@ -439,8 +457,10 @@ The estimate is the weighted mean, with circular mean for θ.
   p_mix(z_i | x) = (1 − ε)·p(z_i | x) + ε / R_max,     ε ≈ 0.05
   ```
 - **Penalty without the mixture:** suppose a beam goes through glass and reads the wall behind, but the naive model expects the glass 1 m closer. With `σ_R = 1 cm`, that single beam costs `(1 / 0.01)² / 2 = 5000` nats of log-likelihood. It overwhelms every other beam, so the filter collapses onto whatever wrong pose "explains" it.
-- **With the mixture**, the penalty per beam is bounded. Peak `log p ≈ 3.64`, floor `log(ε/R_max) ≈ −4.72`, so at most **≈ 8.35 nats** per beam.
-- **In the code (E11):** the filter uses an inflated likelihood width `σ_lik = 5 cm`, not the true 1 cm. With M = 300 particles, a 1 cm likelihood is so sharp that one particle takes all the weight (sample impoverishment). With 5 cm the bounded per-beam gap is **≈ 6.75 nats**, versus `(1/0.05)²/2 = 200` nats for a 1 m mismatch without the mixture. State this as an approximation. It's standard practice.
+- **With the mixture**, the penalty per beam is bounded. Peak `log p ≈ 3.64`, floor `log(ε/R_max) ≈ −4.72`, so at most **≈ 8.35 nats** per beam. In closed form, `Δ_max ≈ ln((1 − ε) R_max / (ε σ √(2π)))`; the uniform takes over for residuals beyond about `σ √(2 Δ_max)` ≈ 4σ.
+- `R_max` in the mixture is the **sensor's** range limit (5.6 m, the support of the uniform), not the target-dependent max range of D5.
+- **The mixture only protects numeric readings.** For `z = ∅` the model gives `Pr(∅) = (1 − ε)(1 − P_D)`, which still → 0 where the model is sure of a return. So we add a small junk mass at ∅ (Thrun's "max-range" term): `Pr(∅) = (1 − ε)(1 − P_D) + ε_∅`, with `ε_∅ = 0.01`.
+- **In the code (E11):** the filter uses an inflated likelihood width `σ_lik = 5 cm`, not the true 1 cm. With M = 300 particles, a 1 cm likelihood is so sharp that one particle takes almost all the weight (**weight degeneracy**), and resampling then leaves only copies of it (**sample impoverishment**). With 5 cm the bounded per-beam gap is **≈ 6.75 nats** (7.66 at 2 cm, 6.05 at 10 cm), versus `(1/0.05)²/2 = 200` nats for a 1 m mismatch without the mixture. State this as an approximation. It's standard practice.
 - **Tempering:** beams aren't truly independent, because neighbouring beams share surfaces and the D7 d-separation note applies. So use every k-th beam, or raise the likelihood to the power `1/k`. State this as an approximation.
 - **The key argument (by inspection):**
   - Naive model + mixture: mirror-ghost and see-through-glass beams become "outliers", so their information is thrown away.
@@ -449,7 +469,14 @@ The estimate is the weighted mean, with circular mean for θ.
   - In D11's terms, the Fisher information sums over more usable beams, so the posterior is tighter.
   - A mirror can also create **pose aliasing**: the virtual room behind it (D8) can look like a real one, so the naive posterior can go multimodal.
 
-**Show (e) 🟧 (optional) why scan matching drifts.** Point-to-point ICP aligns consecutive scans by repeatedly matching nearest points and solving for the best rotation with an SVD (Kabsch). Ghost points behind a mirror move the "wrong way" as the robot moves (mirror-image motion, D8), so ICP gets a biased transform. Heiden et al. compare against ICP, GICP and NDT.
+**Show (e) 🟧 (optional) where scan matching goes wrong.** Point-to-point ICP aligns two point sets by repeatedly matching nearest points and solving for the best rigid transform with an SVD (Kabsch).
+
+Careful: ghost points do **not** move "the wrong way" for static walls. `g = Ref(q)` depends only on the true point `q` and the mirror, so ghosts are static in the world. Scan-to-scan ICP sees a rigid, consistent "virtual room". The bias comes from:
+1. matching a scan to the real **map**: ghosts have no counterpart and snap to the nearest real wall;
+2. a **moving mirror**;
+3. **moving objects seen in the mirror**, whose image velocity is `v' = v − 2(v·n̂)n̂`.
+
+Heiden et al. compare against ICP, GICP and NDT. (Not implemented in our code: DECISIONS #8.)
 
 **Used in:** E11; code `localization.motion`, `localization.likelihood` (naive vs. physics), `localization.particle_filter`, optional `localization.icp`.
 **Course tie-in:** Bayes' theorem and Markov processes (L4); Bayesian networks / dynamic BN (L4); unicycle kinematics (L2); probabilistic measurement model (L3); estimation (D11/CRLB).
@@ -460,36 +487,37 @@ The estimate is the weighted mean, with circular mean for θ.
 
 **Sensor:** 16 laser rings at elevations `ε_k ∈ {−15°, −13°, …, +15°}` (2° apart), spinning through 360° in azimuth `φ_j` (1° steps, so 5,760 rays per scan). It's mounted at height `h = 0.6 m` on the robot. This is Velodyne VLP-16-style geometry. We keep the **same power/noise model and calibration** as the 2D sensor so the two are comparable (a modelling choice; state it).
 
-**Show (a) 🟥 beam directions with Euler angles (L5).** Body-frame direction `b_jk = [cos ε_k cos φ_j, cos ε_k sin φ_j, sin ε_k]ᵀ`. World frame: `u_jk = R_z(ψ) R_y(ϑ) R_x(φ_r) b_jk`, the yaw–pitch–roll sequence from L5, like the pinhole handout's pan/tilt rotations. For our planar robot, only yaw `ψ = θ_s` is nonzero, plus an optional fixed mount tilt `ϑ` to show orientation dependence.
+**Show (a) 🟥 beam directions with Euler angles (L5).** Body-frame direction `b_jk = [cos ε_k cos φ_j, cos ε_k sin φ_j, sin ε_k]ᵀ`. World frame: `u_jk = R_z(ψ) R_y(ϑ) R_x(φ_r) b_jk`, the yaw–pitch–roll sequence from L5, like the pinhole handout's pan/tilt rotations. For our planar robot, only yaw `ψ = θ_s` is nonzero, plus an optional fixed mount tilt `ϑ` to show orientation dependence. Sign convention: `R_y(ϑ) = [[cos ϑ, 0, sin ϑ],[0, 1, 0],[−sin ϑ, 0, cos ϑ]]`, so **positive ϑ tips the forward axis down** ("5° downward" = +5°).
 
 **Show (b) 🟥 3D FOV and the blind zone.**
 ```
 S_3D(x) = { q :  R_min ≤ ‖q − p‖ ≤ R_max,   elevation of (q − p) ∈ [ε_min, ε_max],   LOS(p, q) }
 ```
-(Azimuth covers all of 360°, so it drops out.)
-- **Floor ring:** the lowest ring hits the floor at horizontal distance `r = h / tan 15° ≈ 2.24 m`. A 5° downward mount tilt pulls it in to ≈ 1.65 m.
-- **Blind zone for low objects:** an object of height `z_top` is only hit once `r ≥ (h − z_top) / tan 15°`. For a 0.3 m box that's **1.12 m**. Rings −15° … −3° then cover it continuously out to ≈ 11 m.
+(Azimuth covers all of 360°, so it drops out.) The elevation must be measured in the **sensor frame**: `w = (R_z R_y R_x)ᵀ (q − p)`, `elevation = atan2(w_z, √(w_x² + w_y²))`. The world-frame elevation is only correct with zero pitch and roll.
+- **Floor ring:** the lowest ring hits the floor at horizontal distance `r = h / tan 15° ≈ 2.24 m`. A 5° downward mount tilt pulls it in to ≈ 1.65 m, but **only straight ahead**. The lowest ring's world elevation goes from −20° ahead, to −18.5° at 45°, −14.9° to the side (r ≈ 2.25 m), −11.4° at 135°, and −10° behind (r = 0.6/tan 10° ≈ 3.40 m). E12 plots the exact curve.
+- **Blind zone for low objects:** an object of height `z_top` is only hit once `r ≥ (h − z_top) / tan 15°`, with `r` the horizontal distance along that beam. For a 0.3 m box that's **1.12 m**. Rings −15° … −3° then cover it continuously out to ≈ 11.45 m. That coverage is *geometric*; detection still stops at the D5 max range (5.6 m for ρ = 0.9).
 - **The 2D sensor at the same height never sees that box at all.** Its FOV is a single horizontal plane, a set of zero volume in 3D. That's a clean, provable FOV/LOS dependency.
 - **Ring spacing:** at range `R` the gap between rings is about `R·Δε`, ≈ 17.5 cm at 5 m. Thin horizontal things (a table top) can fall between rings.
 
 **Show (c) 🟥 ray–triangle intersection (Möller–Trumbore), the 3D analogue of D3(c).** Solve `o + t·d = (1 − u − v)·v₀ + u·v₁ + v·v₂` for `(t, u, v)` by Cramer's rule. With `e₁ = v₁ − v₀`, `e₂ = v₂ − v₀`, `P = d × e₂`, `det = e₁·P`, `T = o − v₀`, `Q = T × e₁`:
 ```
 u = (T·P)/det,   v = (d·Q)/det,   t = (e₂·Q)/det
-hit iff |det| > ε,  u ≥ 0,  v ≥ 0,  u + v ≤ 1,  t > 0
+hit iff |det| > τ,  u ≥ 0,  v ≥ 0,  u + v ≤ 1,  t > 0
 ```
-Embree (the ray engine we call through trimesh) does this for us. Our tests check Embree against this formula.
+(`τ` is a small tolerance; the letters `u, v, P, T, Q` are local to this formula.) Hint: Cramer's rule writes each unknown as a ratio of scalar triple products. Embree (the ray engine we call through trimesh) does this for us. Our tests check Embree against this formula.
 
 **Show (d) 🟥 the physics carries over unchanged.**
 - **Reflection:** `u' = u − 2(u·n̂)n̂` holds in any dimension. The **ghost-point theorem** (D8) holds with "reflection across the mirror *plane*"; the proof uses only dot products.
 - **Fresnel/Snell** (D9) and the **power equation** (D5) depend only on the incidence angle and the path length.
-- **Incidence angle on a vertical wall:** in 3D the incidence angle picks up the elevation, `cos θ_inc = cos ε · cos θ_inc,horizontal`.
+- **Incidence angle on a vertical wall:** in 3D the incidence angle picks up the elevation, `cos θ_inc = cos ε · cos θ_inc,horizontal`. This holds for vertical surfaces only. For the floor, `cos θ_inc = |sin ε|`, which is why a grazing floor (ρ = 0.5) is mostly below threshold.
 
 **Show (e) 🟥 2D is a slice of 3D (our consistency check, E13).** Build the 3D scene by extruding every 2D segment into a vertical wall (with mirrors and glass vertical too), and add a floor and ceiling.
-- The horizontal ring (`ε = 0`) then gives **identical** paths, ranges and powers to the 2D sensor. Horizontal rays hit vertical surfaces with horizontal normals, so reflections stay horizontal.
-- For a tilted ring hitting a wall, `R_3D = R_2D / cos ε` (≈ 1.035 × at 15°).
+- A horizontal ring (`ε = 0`) then gives **identical** paths, ranges and powers to the 2D sensor. Horizontal rays hit vertical surfaces with horizontal normals, so reflections stay horizontal. Note: the VLP-16 ring set (odd degrees) has **no** ε = 0 ring, so the check (E13, `test_horizontal_ring_equals_2d_scan`) uses a dedicated horizontal test ring.
+- For a tilted ring hitting a wall, `R_3D = R_2D / cos ε` (≈ 1.035 × at 15°). This also holds through vertical-mirror bounces, until the ray reaches the floor or ceiling.
+- **Power:** at the same horizontal distance, `P_3D = P_2D cos³ε` (one cos from the incidence angle, cos² from the longer path). So the horizontal reach is `R_max cos^{3/2} ε`, ≈ 0.95 R_max at 15°.
 - This is how we validate the 3D backend against the 2D one.
 
-**Used in:** E12, E13; code `backends.mesh3d`, `sensor3d`, `scenes3d`, test `test_2d_is_slice_of_3d`.
+**Used in:** E12, E13; code `backends.mesh3d`, `sensor3d`, `scenes3d`, tests in `tests/test_backends.py`.
 **Course tie-in:** Euler angles and frames (L5); FOV and LOS (L2, L6); pinhole handout (3D rotations and projection).
 
 ---

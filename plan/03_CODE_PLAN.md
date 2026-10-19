@@ -1,5 +1,7 @@
 # Code Plan — LiDAR Simulator (2D + 3D) with Localization (Python)
 
+> **Status (2026-10-19): all stages 0–11 are implemented, tested (114 tests) and committed.** Per-stage details and results are in `PROGRESS.md`; calls made along the way are in `DECISIONS_NEEDED.md`. The stage prompts below still work for re-doing or extending a stage.
+
 > **How to use this doc:** each **Stage** below is sized to fit in roughly one Claude Code session. Start a session, paste the stage's **Prompt**, and let it run. Check the **Done when** list, then commit. Every stage appends a short entry to `PROGRESS.md`, so the next session (or a fresh context after hitting usage limits) knows where things stand.
 >
 > Read `01_PROJECT_PLAN.md` for the *why* and `02_DERIVATIONS.md` for the equations (referred to as D1–D14). Experiments are E1–E13.
