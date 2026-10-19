@@ -34,6 +34,8 @@ PRESETS = {
         "e5": dict(pose=(6.9, 2.4, 150.0)),
         "e6": dict(glass_dist=2.0, wall_dist=4.0, room_pose=(2.4, 1.5, -10.0)),
         "e7": dict(pose=(3.0, 3.2, 0.0)),
+        "e12": dict(pose=(1.6, 2.8, 0.0), ghost_pose=(6.9, 2.4, 150.0)),
+        "e13": dict(pose=(4.6, 3.2, 14.0)),
     },
     "variant_b": {
         "e1": dict(start=(2.6, 0.8), end=(2.6, 3.2), heading_deg=90.0,
@@ -44,6 +46,8 @@ PRESETS = {
         "e5": dict(pose=(0.9, 2.1, 60.0)),
         "e6": dict(glass_dist=1.5, wall_dist=5.0, room_pose=(3.6, 1.6, 20.0)),
         "e7": dict(pose=(4.5, 4.2, -150.0)),
+        "e12": dict(pose=(5.2, 3.0, 90.0), ghost_pose=(0.9, 2.1, 60.0)),
+        "e13": dict(pose=(3.0, 3.0, 200.0)),
     },
 }
 

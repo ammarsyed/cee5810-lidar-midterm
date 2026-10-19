@@ -182,3 +182,34 @@ One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom
 **Tests:** 92 passed. Includes convergence, unbiased resampling, naive == physics without specular surfaces, mixture bound 6.745 / 8.35 nats, circular mean, and update speed (5.3 ms).
 
 **Next:** Stage 8 (3D).
+
+## 2026-10-19 — Stage 8: 3D LiDAR mode (E12, E13) ✅
+
+**Done**
+- `backends/mesh3d.py`: trimesh + Embree first-hit backend (normals flipped to face the ray)
+- `scenes3d.py`:
+  - Scene3D (quads/boxes with per-surface materials, cached backend)
+  - `extrude()` (2D segments → vertical walls with the same surface ids, plus floor and ceiling)
+  - add_table, default_room_3d / variant_b_3d (with a 0.3 m low box and a table, top at 0.75 m)
+- `sensor3d.py`: LidarParams3D (16 rings ±15°, 1° azimuth, h = 0.6 m, mount tilt, elevation override), ring_directions (ZYX Euler), scan3d (same tracer, noise and selection as 2D)
+- `viz3d.py`: range image, 3D scatter (height / ghost), bird's-eye view with 3D-object footprints, rotating animation
+- **E12** (partner's):
+
+  | Check | Result |
+  |---|---|
+  | points on low box, 2D plane vs 3D | 0 vs 76–81 |
+  | points on table, 2D plane vs 3D | 6–8 vs 57–94 |
+  | floor ring vs exact formula, tilt 0° / 5° | 2.239 / 1.648 m, matching to 1e-15 |
+  | 3D ghosts at the mirror pose | 445–540 |
+  | rotating MP4/GIF | rendered |
+- **E13** (Ammar's):
+
+  | Check | Result |
+  |---|---|
+  | ε = 0 ring vs 2D | match to 1e-15 m; 100% same detections; ghosts identical |
+  | R_3D/R_2D vs 1/cos ε | match to 7e-16 |
+- One 3D scan (5,760 rays, mirror + glass): **3.1 ms**.
+
+**Tests:** 107 passed. 3D tests cover Embree vs Möller–Trumbore, the slice identity, 1/cos ε, floor ring + tilt, blind zone at 1.12 m, 3D ghost theorem and speed. Experiment smoke tests now include E11–E13.
+
+**Next:** Stage 9 (slider demo + notebook).
