@@ -131,7 +131,7 @@ class ScanResult:
 | Intersection | cross-product formula; nearest `t > 1e-9` | D3(c) |
 | Normal orientation | flip `n̂` so `dot(u, n̂) < 0`; `θ_inc = arccos(−u·n̂)` | — |
 | Matte hit | diffuse return, **stop** tracing | D5 |
-| Mirror hit | specular-lobe return (head-on only) + continue with `u' = u − 2(u·n̂)n̂`, throughput × R_m | D5, D8 |
+| Mirror hit | specular-lobe return using `R_m` (head-on only) + continue with `u' = u − 2(u·n̂)n̂`, throughput × R_m | D5, D8 |
 | Glass hit | specular-lobe return with `R_F(θ)` + continue **straight** (thin pane) with throughput × (1−R_F)² + (if bounces left) a reflected branch with throughput × R_F | D9 |
 | Power | `P = K·ρ·cosθ·T²·e^(−2αL)/L²` where T = one-way throughput, L = total path length | D5, D10 |
 | Calibration | choose `K/P_th` so `R_max = 5.6 m` for ρ = 0.9 head-on, clear air | D5 |
@@ -192,7 +192,8 @@ Rough sizes: **S** ≈ small session, **M** ≈ medium, **L** ≈ big (maybe spl
 - Tests:
   - 10k samples of one beam → std ≈ `cσ_t/2` within 3%
   - Simulated max range (where P_D crosses 0.5) ≈ the analytic `R_max(ρ)` for ρ ∈ {0.1, 0.5, 0.9}
-  - Fog: analytic `W(αR₀)/α` matches a numeric root-find
+  - Fog: analytic `W₀(αR₀)/α` matches a numeric root-find **and** the `R_max(α)` reference table in D10 (2 decimals)
+  - `dR_max/dα` matches `−R_max²/(1+αR_max)` by finite differences (D11)
   - α = 0 reduces to the clear-air formula
 
 **Done when:** tests pass; a quick figure of P_D vs. range for a few ρ and α values.
