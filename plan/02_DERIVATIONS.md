@@ -199,7 +199,7 @@ In the code, `K_s/K = 1/(8θ_w²) ≈ 182` for θ_w = 1.5°. Where that comes fr
 ```
 θ_inc < θ_max = θ_w · sqrt( 2 ln( (K_s/K)(K/P_th) R_F / R_g² ) )
 ```
-with `R_g` the distance to the glass. For `R_g = 2 m`, `θ_max ≈ 4.3°`: 5.0° at 1 m, 3.9° at 3 m, so it depends on the scene. The glass is also the *strongest* return up to ≈ 4.2° (with a ρ = 0.7 wall 2 m behind it). So glass appears as a blip about 8 beams wide (E6).
+with `R_g` the distance to the glass. For `R_g = 2 m`, `θ_max ≈ 4.3°`: 5.0° at 1 m, 3.9° at 3 m, so it depends on the scene. The glass is also the *strongest* return up to ≈ 4.2° (with a ρ = 0.7 wall 2 m behind it). So glass appears as a blip about 8–9 beams wide at 1° spacing, depending on how the beams line up with the glass (E6).
 ```
 P_r,spec = K_s · R_spec(θ_inc) · exp(−θ_inc² / (2 θ_w²)) / R²,     θ_w ≈ 1–2°
 R_spec = R_m (≈ 0.95) for the mirror,   R_spec = R_F(θ_inc) (Fresnel, D9) for glass
@@ -459,7 +459,7 @@ The estimate is the weighted mean, with circular mean for θ. Caveat: with mirro
 - **Penalty without the mixture:** suppose a beam goes through glass and reads the wall behind, but the naive model expects the glass 1 m closer. With `σ_R = 1 cm`, that single beam costs `(1 / 0.01)² / 2 = 5000` nats of log-likelihood. It overwhelms every other beam, so the filter collapses onto whatever wrong pose "explains" it.
 - **With the mixture**, the penalty per beam is bounded. Peak `log p ≈ 3.64`, floor `log(ε/R_max) ≈ −4.72`, so at most **≈ 8.35 nats** per beam. In closed form, `Δ_max ≈ ln((1 − ε) R_max / (ε σ √(2π)))`; the uniform takes over for residuals beyond about `σ √(2 Δ_max)` ≈ 4σ.
 - `R_max` in the mixture is the **sensor's** range limit (5.6 m, the support of the uniform), not the target-dependent max range of D5.
-- **The mixture only protects numeric readings.** For `z = ∅` the model gives `Pr(∅) = (1 − ε)(1 − P_D)`, which still → 0 where the model is sure of a return. So we add a small junk mass at ∅ (Thrun's "max-range" term): `Pr(∅) = (1 − ε)(1 − P_D) + ε_∅`, with `ε_∅ = 0.01`.
+- **The mixture only protects numeric readings.** For `z = ∅` the model gives `Pr(∅) = (1 − ε)(1 − P_D)`, which still → 0 where the model is sure of a return. So we add a small junk mass at ∅ (Thrun's "max-range" term): `Pr(∅) = (1 − ε)(1 − P_D) + ε_∅`, with `ε_∅ = 0.01`. This makes the total probability `1 + ε_∅` for every pose, so particle weights are unaffected; divide by it if you need a proper distribution.
 - **In the code (E11):** the filter uses an inflated likelihood width `σ_lik = 5 cm`, not the true 1 cm. With M = 300 particles, a 1 cm likelihood is so sharp that one particle takes almost all the weight (**weight degeneracy**), and resampling then leaves only copies of it (**sample impoverishment**). With 5 cm the bounded per-beam gap is **≈ 6.75 nats** (7.66 at 2 cm, 6.05 at 10 cm), versus `(1/0.05)²/2 = 200` nats for a 1 m mismatch without the mixture. State this as an approximation. It's standard practice.
 - **Tempering:** beams aren't truly independent, because neighbouring beams share surfaces and the D7 d-separation note applies. So use every k-th beam, or raise the likelihood to the power `1/k`. State this as an approximation.
 - **The key argument (by inspection):**
@@ -509,7 +509,7 @@ hit iff |det| > τ,  u ≥ 0,  v ≥ 0,  u + v ≤ 1,  t > 0
 **Show (d) 🟥 the physics carries over unchanged.**
 - **Reflection:** `u' = u − 2(u·n̂)n̂` holds in any dimension. The **ghost-point theorem** (D8) holds with "reflection across the mirror *plane*"; the proof uses only dot products.
 - **Fresnel/Snell** (D9) and the **power equation** (D5) depend only on the incidence angle and the path length.
-- **Incidence angle on a vertical wall:** in 3D the incidence angle picks up the elevation, `cos θ_inc = cos ε · cos θ_inc,horizontal`. This holds for vertical surfaces only. For the floor, `cos θ_inc = |sin ε|`, which is why a grazing floor (ρ = 0.5) is mostly below threshold.
+- **Incidence angle on a vertical wall:** in 3D the incidence angle picks up the elevation, `cos θ_inc = cos ε · cos θ_inc,horizontal`. This holds for vertical surfaces only. For the floor, `cos θ_inc = |sin ε|`, which is why a grazing floor (ρ = 0.5) is mostly below threshold: with no tilt even the steepest floor hit reaches only 0.84 × the threshold. With a 5° tilt the floor shows up only ahead of the robot: ±79° of azimuth on the −15° ring, ±54° on −13°, ±10° on −11°. That's why E12's floor-ring figure uses a white (ρ = 0.9) floor-only scene.
 
 **Show (e) 🟥 2D is a slice of 3D (our consistency check, E13).** Build the 3D scene by extruding every 2D segment into a vertical wall (with mirrors and glass vertical too), and add a floor and ceiling.
 - A horizontal ring (`ε = 0`) then gives **identical** paths, ranges and powers to the 2D sensor. Horizontal rays hit vertical surfaces with horizontal normals, so reflections stay horizontal. Note: the VLP-16 ring set (odd degrees) has **no** ε = 0 ring, so the check (E13, `test_horizontal_ring_equals_2d_scan`) uses a dedicated horizontal test ring.
