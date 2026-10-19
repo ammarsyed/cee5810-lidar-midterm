@@ -77,6 +77,17 @@ def resolve(args):
     return args
 
 
+def markdown_table(header, rows):
+    """Markdown text for a table (floats to 4 significant figures)."""
+
+    def fmt(v):
+        return f"{v:.4g}" if isinstance(v, float) else str(v)
+
+    md = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
+    md += ["| " + " | ".join(fmt(v) for v in r) + " |" for r in rows]
+    return "\n".join(md) + "\n"
+
+
 def write_table(out, name, header, rows):
     """Write a table as CSV and as a Markdown file (for pasting into the report)."""
     out = Path(out)
@@ -85,13 +96,7 @@ def write_table(out, name, header, rows):
         w = csv.writer(f)
         w.writerow(header)
         w.writerows(rows)
-
-    def fmt(v):
-        return f"{v:.4g}" if isinstance(v, float) else str(v)
-
-    md = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
-    md += ["| " + " | ".join(fmt(v) for v in r) + " |" for r in rows]
-    (out / f"{name}.md").write_text("\n".join(md) + "\n")
+    (out / f"{name}.md").write_text(markdown_table(header, rows))
     return out / f"{name}.csv"
 
 

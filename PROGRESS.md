@@ -227,3 +227,12 @@ One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom
 **Tests:** 2 new (headless build, fog lowers detections, sensor move changes the scan, variant_b builds).
 
 **Next:** Stage 9b (notebook).
+
+## 2026-10-19 — Stage 9b: walkthrough notebook ✅
+
+**Done**
+- `notebooks/make_notebook.py` generates `notebooks/lidar_walkthrough.ipynb`, a thin viewer. Sections: setup, sensor & scene (params table), one scan explained, then E1–E8, CPT, E11 (3 seeds), E12–E13, the interactive cell (off by default), and a theory-vs-simulation summary table.
+- `experiments/common.markdown_table` factored out for the notebook.
+- Executes headless with `uv run jupyter nbconvert --to html --execute notebooks/lidar_walkthrough.ipynb` in **~24 s** with no errors. Summary: E1 4.4e-16 m, E2 1.000, E4 4.6e-13 m, E5 2.5e-15 m, E6 7.8e-16, E7 4.7e-13 m, E8 KS p 0.65, E11 corridor 5.4 vs 1.2 cm (3 seeds), E13 1.3e-15 m.
+
+**Next:** Stage 10 stretch (E9 CW phase, E10 beam divergence) and Stage 11 polish.
