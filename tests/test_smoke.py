@@ -16,6 +16,18 @@ MODULES = [
     "lidar_sim.sensor",
     "lidar_sim.noise",
     "lidar_sim.viz",
+    "lidar_sim.viz3d",
+    "lidar_sim.scenes3d",
+    "lidar_sim.sensor3d",
+    "lidar_sim.backends",
+    "lidar_sim.backends.base",
+    "lidar_sim.backends.segments2d",
+    "lidar_sim.backends.mesh3d",
+    "lidar_sim.localization",
+    "lidar_sim.localization.motion",
+    "lidar_sim.localization.likelihood",
+    "lidar_sim.localization.particle_filter",
+    "lidar_sim.localization.icp",
     "experiments",
     "experiments.common",
 ]
@@ -51,3 +63,18 @@ def test_video_export_available():
 
     # Bundled ffmpeg lets matplotlib write MP4s with no system install.
     assert os.path.exists(imageio_ffmpeg.get_ffmpeg_exe())
+
+
+def test_embree_ray_casting():
+    import numpy as np
+    import trimesh
+    from trimesh.ray.ray_pyembree import RayMeshIntersector
+
+    # 8 x 6 x 3 m room; one horizontal ray from the centre at 0.6 m must hit the x = +4 wall.
+    room = trimesh.creation.box(extents=(8, 6, 3))
+    room.apply_translation((0, 0, 1.5))
+    locs, ray_idx, _ = RayMeshIntersector(room).intersects_location(
+        np.array([[0.0, 0.0, 0.6]]), np.array([[1.0, 0.0, 0.0]]), multiple_hits=False
+    )
+    assert list(ray_idx) == [0]
+    assert np.isclose(locs[0][0], 4.0, atol=1e-4)

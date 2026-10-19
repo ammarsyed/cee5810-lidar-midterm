@@ -1,6 +1,6 @@
 # Derivations To Do — LiDAR Midterm (for the math side)
 
-Context: we're simulating a **2D scanning LiDAR** in a room with matte walls, a **mirror**, a **glass pane**, a **moving box**, and optional **fog**. The full plan is in `01_PROJECT_PLAN.md`. This doc lists the math we need, in priority order. For each item you get:
+Context: we're simulating a **2D scanning LiDAR** in a room with matte walls, a **mirror**, a **glass pane**, a **moving box**, and optional **fog**. Two upgrades sit on top: the robot **localizes itself** with a particle filter (D13), and there's a **3D, 16-ring LiDAR mode** (D14). The full plan is in `01_PROJECT_PLAN.md`. This doc lists the math we need, in priority order (D1–D12 core, D13–D14 upgrades). For each item you get:
 - **Show:** what to derive
 - **Hint/sketch:** enough to get going, with key results so you can check yourself
 - **Used in:** which experiment/figure and which code function uses it
@@ -43,7 +43,20 @@ Context: we're simulating a **2D scanning LiDAR** in a room with matte walls, a 
 | `T_path` | product of all interface factors along a beam's path, out and back |
 | `R₀` | clear-air max range for a given target (D5) |
 
-**Name clashes to watch:** `R` (range) vs. `R_F`, `R_m` (reflectances); `n` (refractive index) vs. `n̂` (normal) vs. `n_i` (noise); `Φ` (FOV angle) vs. `Φ_N` (normal CDF).
+| `x_k, u_k = (v_k, ω_k)`, `Δt` | robot pose and odometry (speed, turn rate) at time step *k*; step length (D13) |
+| `σ_v, σ_ω` | odometry noise std. devs (D13) |
+| `M`, `x^[m]`, `w^[m]`, `N_eff` | number of particles, particle *m*, its weight, effective sample size (D13) |
+| `ε` (mixture) | weight of the uniform "junk" component in the robust likelihood (D13) |
+| `ε_k`, `φ_j` | elevation of ring *k*, azimuth of column *j* (3D sensor, D14) |
+| `h` | sensor mounting height (0.6 m, D14) |
+| `ψ, ϑ, φ_r` | yaw, pitch, roll of the 3D sensor (L5 Euler angles, D14) |
+
+**Name clashes to watch:**
+- `R` (range) vs. `R_F`, `R_m` (reflectances)
+- `n` (refractive index) vs. `n̂` (normal) vs. `n_i` (noise)
+- `Φ` (FOV angle) vs. `Φ_N` (normal CDF)
+- `ε` (mixture weight) vs. `ε_k` (elevation)
+- `φ_j` (azimuth) vs. `φ_r` (roll)
 
 ---
 
@@ -376,6 +389,112 @@ A beam is a cone (Heiden: 4 cm wide at 4 m). Sample it with 3 sub-rays with powe
 
 ---
 
+# Upgrades (planned): localization and 3D
+
+D13 and D14 support the two upgrades we chose for technical challenge:
+- **experiment E11:** the robot localizes itself with a particle filter, naive vs. physics-aware model
+- **experiments E12–E13:** a 3D, 16-ring LiDAR mode
+
+They're 🟥 because we're building both, so each report has to explain them.
+
+---
+
+## D13 🟥 Localization: Bayes filter, particle filter, and why the model matters
+
+**Story:** a robot drives through the room and has to work out *where it is* from its LiDAR scans. That's the main experiment in Heiden et al. (Sec. IV-A). We use our own likelihood `p(z | x)` from D6 inside a **particle filter**. Then we show what happens when the filter uses a **naive** sensor model (every surface matte and opaque, i.e. what Gazebo or a standard occupancy map assumes) instead of our **physics-aware** one.
+
+**Show (a) 🟥 motion model.** The robot follows the **unicycle model from L2** (slide 9: `ẋ = v cos θ, ẏ = v sin θ, θ̇ = ω`). Discretise with step `Δt` and noisy odometry `u_k = (v_k, ω_k)`:
+```
+x_{k+1} = x_k + Δt·v̂_k cos θ_k
+y_{k+1} = y_k + Δt·v̂_k sin θ_k
+θ_{k+1} = θ_k + Δt·ω̂_k
+v̂_k = v_k + N(0, σ_v²),   ω̂_k = ω_k + N(0, σ_ω²)
+```
+This defines `p(x_{k+1} | x_k, u_k)`.
+
+**Show (b) 🟥 the Bayes filter, from Bayes' theorem + the Markov property (L4):**
+```
+bel(x_k) = η · p(z_k | x_k) · ∫ p(x_k | x_{k−1}, u_k) · bel(x_{k−1}) dx_{k−1}
+           ─────┬─────         ───────────────┬──────────────────────
+            correct (D6)                 predict (motion model)
+```
+Derive it in two steps:
+1. Apply Bayes' theorem to `p(x_k | z_{1:k}, u_{1:k})`.
+2. Use the Markov assumptions: `z_k` depends only on `x_k`, and `x_k` depends only on `x_{k−1}` and `u_k`.
+
+As a graphical model this is a **dynamic Bayesian network** (an HMM): `x_{k−1} → x_k → z_k`, with `u_k → x_k`. Draw it next to the D7 network: D7 is the inside of each `x_k → z_k` arrow.
+
+**Show (c) 🟥 particle approximation (Monte Carlo localization).** Represent `bel(x_k) ≈ Σ_m w^[m] δ(x − x^[m])` with `M` particles. Each step:
+1. **Predict:** sample `x^[m]_k ~ p(x_k | x^[m]_{k−1}, u_k)`.
+2. **Weight:** `w^[m] ∝ p(z_k | x^[m]_k)` (importance sampling: the proposal is the motion model, so the weight is the likelihood).
+3. **Resample** with the low-variance (systematic) scheme when `N_eff = 1/Σ_m (w^[m])² < M/2`.
+
+The estimate is the weighted mean, with circular mean for θ.
+
+**Show (d) 🟥 the likelihood and why naive models break.**
+- Per beam we use D6. We add a small uniform "junk" component (Thrun's beam model), so one bad beam can't zero out a particle:
+  ```
+  p_mix(z_i | x) = (1 − ε)·p(z_i | x) + ε / R_max,     ε ≈ 0.05
+  ```
+- **Penalty without the mixture:** suppose a beam goes through glass and reads the wall behind, but the naive model expects the glass 1 m closer. With `σ_R = 1 cm`, that single beam costs `(1 / 0.01)² / 2 = 5000` nats of log-likelihood. It overwhelms every other beam, so the filter collapses onto whatever wrong pose "explains" it.
+- **With the mixture**, the penalty per beam is bounded. Peak `log p ≈ 3.64`, floor `log(ε/R_max) ≈ −4.72`, so at most **≈ 8.35 nats** per beam.
+- **Tempering:** beams aren't truly independent, because neighbouring beams share surfaces and the D7 d-separation note applies. So use every k-th beam, or raise the likelihood to the power `1/k`. State this as an approximation.
+- **The key argument (by inspection):**
+  - Naive model + mixture: mirror-ghost and see-through-glass beams become "outliers", so their information is thrown away.
+  - Naive model, no mixture: they actively *mislead* it.
+  - Physics-aware model: it predicts the ghosts and the see-through, so those beams become *information*.
+  - In D11's terms, the Fisher information sums over more usable beams, so the posterior is tighter.
+  - A mirror can also create **pose aliasing**: the virtual room behind it (D8) can look like a real one, so the naive posterior can go multimodal.
+
+**Show (e) 🟧 (optional) why scan matching drifts.** Point-to-point ICP aligns consecutive scans by repeatedly matching nearest points and solving for the best rotation with an SVD (Kabsch). Ghost points behind a mirror move the "wrong way" as the robot moves (mirror-image motion, D8), so ICP gets a biased transform. Heiden et al. compare against ICP, GICP and NDT.
+
+**Used in:** E11; code `localization.motion`, `localization.likelihood` (naive vs. physics), `localization.particle_filter`, optional `localization.icp`.
+**Course tie-in:** Bayes' theorem and Markov processes (L4); Bayesian networks / dynamic BN (L4); unicycle kinematics (L2); probabilistic measurement model (L3); estimation (D11/CRLB).
+
+---
+
+## D14 🟥 3D LiDAR: geometry, FOV, and why 2D is a special case
+
+**Sensor:** 16 laser rings at elevations `ε_k ∈ {−15°, −13°, …, +15°}` (2° apart), spinning through 360° in azimuth `φ_j` (1° steps, so 5,760 rays per scan). It's mounted at height `h = 0.6 m` on the robot. This is Velodyne VLP-16-style geometry. We keep the **same power/noise model and calibration** as the 2D sensor so the two are comparable (a modelling choice; state it).
+
+**Show (a) 🟥 beam directions with Euler angles (L5).** Body-frame direction `b_jk = [cos ε_k cos φ_j, cos ε_k sin φ_j, sin ε_k]ᵀ`. World frame: `u_jk = R_z(ψ) R_y(ϑ) R_x(φ_r) b_jk`, the yaw–pitch–roll sequence from L5, like the pinhole handout's pan/tilt rotations. For our planar robot, only yaw `ψ = θ_s` is nonzero, plus an optional fixed mount tilt `ϑ` to show orientation dependence.
+
+**Show (b) 🟥 3D FOV and the blind zone.**
+```
+S_3D(x) = { q :  R_min ≤ ‖q − p‖ ≤ R_max,   elevation of (q − p) ∈ [ε_min, ε_max],   LOS(p, q) }
+```
+(Azimuth covers all of 360°, so it drops out.)
+- **Floor ring:** the lowest ring hits the floor at horizontal distance `r = h / tan 15° ≈ 2.24 m`. A 5° downward mount tilt pulls it in to ≈ 1.65 m.
+- **Blind zone for low objects:** an object of height `z_top` is only hit once `r ≥ (h − z_top) / tan 15°`. For a 0.3 m box that's **1.12 m**. Rings −15° … −3° then cover it continuously out to ≈ 11 m.
+- **The 2D sensor at the same height never sees that box at all.** Its FOV is a single horizontal plane, a set of zero volume in 3D. That's a clean, provable FOV/LOS dependency.
+- **Ring spacing:** at range `R` the gap between rings is about `R·Δε`, ≈ 17.5 cm at 5 m. Thin horizontal things (a table top) can fall between rings.
+
+**Show (c) 🟥 ray–triangle intersection (Möller–Trumbore), the 3D analogue of D3(c).** Solve `o + t·d = (1 − u − v)·v₀ + u·v₁ + v·v₂` for `(t, u, v)` by Cramer's rule. With `e₁ = v₁ − v₀`, `e₂ = v₂ − v₀`, `P = d × e₂`, `det = e₁·P`, `T = o − v₀`, `Q = T × e₁`:
+```
+u = (T·P)/det,   v = (d·Q)/det,   t = (e₂·Q)/det
+hit iff |det| > ε,  u ≥ 0,  v ≥ 0,  u + v ≤ 1,  t > 0
+```
+Embree (the ray engine we call through trimesh) does this for us. Our tests check Embree against this formula.
+
+**Show (d) 🟥 the physics carries over unchanged.**
+- **Reflection:** `u' = u − 2(u·n̂)n̂` holds in any dimension. The **ghost-point theorem** (D8) holds with "reflection across the mirror *plane*"; the proof uses only dot products.
+- **Fresnel/Snell** (D9) and the **power equation** (D5) depend only on the incidence angle and the path length.
+- **Incidence angle on a vertical wall:** in 3D the incidence angle picks up the elevation, `cos θ_inc = cos ε · cos θ_inc,horizontal`.
+
+**Show (e) 🟥 2D is a slice of 3D (our consistency check, E13).** Build the 3D scene by extruding every 2D segment into a vertical wall (with mirrors and glass vertical too), and add a floor and ceiling.
+- The horizontal ring (`ε = 0`) then gives **identical** paths, ranges and powers to the 2D sensor. Horizontal rays hit vertical surfaces with horizontal normals, so reflections stay horizontal.
+- For a tilted ring hitting a wall, `R_3D = R_2D / cos ε` (≈ 1.035 × at 15°).
+- This is how we validate the 3D backend against the 2D one.
+
+**Used in:** E12, E13; code `backends.mesh3d`, `sensor3d`, `scenes3d`, test `test_2d_is_slice_of_3d`.
+**Course tie-in:** Euler angles and frames (L5); FOV and LOS (L2, L6); pinhole handout (3D rotations and projection).
+
+---
+
 ## Checklist for the hand-off to code
 
-When you finish a derivation, put the **final equation(s) + any constants** in a message or comment so the code can be checked against it. The code has unit tests for: D3(c) intersection, D8 ghost theorem, D9 Fresnel table values, D5 max-range formula, D1/D6 noise std, D10 Lambert-W max range.
+When you finish a derivation, put the **final equation(s) + any constants** in a message or comment so the code can be checked against it. The code has unit tests for:
+- D3(c) intersection, D8 ghost theorem, D9 Fresnel table values
+- D5 max-range formula, D1/D6 noise std, D10 Lambert-W max range
+- D13: particle filter converges in a plain matte room; resampling keeps the weights unbiased
+- D14: Embree vs. Möller–Trumbore, the 2D-slice identity, floor-ring radius and blind-zone distance

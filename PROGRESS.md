@@ -58,3 +58,25 @@ One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom
 **Tests:** `uv run pytest` → all pass.
 
 **Next:** Stage 1 (unchanged).
+
+## 2026-10-19 — Upgrades added: localization (U1) + 3D mode (U2) ✅
+
+**Decided:** no big simulator platform. Gazebo, Isaac, CARLA and AirSim either won't run on Apple Silicon or only do ray-cast + noise. Open3D's Mac wheel needs Homebrew `libusb`. We add depth instead.
+
+**Done**
+- `plan/02_DERIVATIONS.md`:
+  - **D13** localization: unicycle model (L2), Bayes filter from Bayes + Markov (L4), particle filter, robust mixture likelihood, bounded penalty ≈ 8.35 nats vs 5000 without, tempering, optional ICP
+  - **D14** 3D: Euler-angle ring directions (L5), 3D FOV, floor ring 2.24 m, low-box blind zone 1.12 m, Möller–Trumbore, physics carries over, 2D = ε=0 slice
+  - Notation and checklist updated. All new numbers verified numerically.
+- `plan/01_PROJECT_PLAN.md`: pitch, upgrades table, 3D + localization parameters, 3D scene objects, experiments **E11–E13**, work split (Ammar E11, partner E12, E13 shared), report outline, a 12-day timeline with cut order, course concepts, references.
+- `plan/03_CODE_PLAN.md` rewritten around a **backend-agnostic, batched breadth-first tracer**:
+  - backends: `Segments2D` (numpy) and `Mesh3D` (trimesh + Embree)
+  - **new Stage 7** localization (7a/7b) and **Stage 8** 3D (8a/8b)
+  - the slider demo and notebook move to **9a/9b**, stretch to **10**, polish to **11**
+- Deps: `trimesh`, `embreex`. New skeleton modules: `backends/`, `localization/`, `scenes3d.py`, `sensor3d.py`, `viz3d.py`. Smoke test imports them and checks a real Embree hit.
+
+**Tests:** `uv run pytest` → 28 passed.
+
+**Note:** the partner page (artifact) was built before D13/D14 existed, so it doesn't include them yet.
+
+**Next:** Stage 1. Geometry + the backend interface + the vectorised `Segments2D` backend, matte room, smoke figure, D3 tests.
