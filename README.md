@@ -36,6 +36,7 @@ Everything runs from this folder.
 | Your partner's (different scene, so distinct media) | `uv run python -m experiments.run_all --person partner` |
 | Quick pass | add `--fast` (and `--no-anim` to skip videos) |
 | One experiment | `uv run python -m experiments.e5_mirror --person partner` |
+| **Demo board** (one page: every video + key figures, in talk order) | `uv run python -m experiments.demo_board --open` |
 | Interactive slider demo (desktop window) | `uv run python -m experiments.interactive` |
 | Record the demo as a video | `uv run python -m experiments.interactive --record figures/ammar/demo.mp4` |
 | Walkthrough notebook | `uv run jupyter lab notebooks/lidar_walkthrough.ipynb` |

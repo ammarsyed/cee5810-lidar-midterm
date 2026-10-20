@@ -75,6 +75,9 @@ def main():
         if scene == "default":
             for p in render([f"{out}/drive.gif"]):
                 print(p)
+    from experiments.demo_board import build as build_board
+
+    print(build_board(args.person))
     if args.notebook:
         subprocess.run([sys.executable, "-m", "jupyter", "nbconvert", "--to", "html", "--execute",
                         "--ExecutePreprocessor.timeout=1800", "notebooks/lidar_walkthrough.ipynb"], check=True)
