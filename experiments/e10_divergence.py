@@ -4,13 +4,13 @@ The beam is a cone (Heiden: 4 cm wide at 4 m, half-angle 5 mrad). Each beam is s
 When the sub-rays split between a near object and a far wall, the reported range lands BETWEEN them:
 power-weighted linear average vs the exact continuous-wave phasor sum.
 
-Run: uv run python -m experiments.e10_divergence [--person partner] [--fast]
+Run: uv run python -m experiments.e10_divergence --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from experiments.common import finish, parser, resolve
+from experiments.common import finish, load_person, parser, resolve
 from lidar_sim import viz
 from lidar_sim.materials import matte
 from lidar_sim.phase import mixed_range
@@ -40,8 +40,10 @@ def sub_ray_returns(world, angles, n_sub=3, half=HALF_ANGLE):
     return R, P
 
 
-def run(scene="default", seed=0, fast=False):
-    near, far = (2.0, 3.0) if scene == "default" else (1.5, 3.5)
+def run(person="ammar", seed=None, fast=False):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    near, far = cfg["e10"]["near"], cfg["e10"]["far"]
     world = edge_scene(near, far)
     edge_angle = np.arctan2(0.0, near)  # box edge at y = 0
     angles = edge_angle + np.radians(np.linspace(-0.8, 0.8, 161 if fast else 641))
@@ -86,7 +88,7 @@ def run(scene="default", seed=0, fast=False):
 
 def main():
     args = resolve(parser(__doc__).parse_args())
-    finish(run(args.scene, args.seed, args.fast), args.out, "e10")
+    finish(run(args.person, args.seed, args.fast), args.out, "e10")
 
 
 if __name__ == "__main__":

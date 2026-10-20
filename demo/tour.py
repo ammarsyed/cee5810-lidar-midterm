@@ -4,34 +4,30 @@ The snapshot shows reported points, mirror ghosts with their true sources, see-t
 FOV wedge and the visible region, next to the polar range profile. The animation drives the sensor
 along a loop past the mirror and the glass while the box moves.
 
-Run: uv run python -m demo.tour [--person partner] [--no-anim]
+Run: uv run python -m demo.tour --person ammar|gal [--no-anim]
+
+The snapshot pose and the drive loop come from the [tour] table in people/<person>.toml.
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from experiments.common import finish, parser, resolve
+from experiments.common import finish, load_person, parser, pose_rad, resolve, scene_of
 from lidar_sim import viz
 from lidar_sim.paths import waypoint_path
-from lidar_sim.scenes import get_scene
 from lidar_sim.sensor import LidarParams, scan, visibility_polygon
 
-# Per scene: a snapshot pose (x, y, heading_deg) close enough to the mirror to show ghosts, and a
-# drive loop that passes the mirror and the glass.
-TOURS = {
-    "default": dict(pose=(4.6, 3.2, 14.0),
-                    waypoints=[(1.2, 1.5), (4.0, 3.2), (6.0, 2.6), (4.0, 3.6), (1.5, 3.0)]),
-    "variant_b": dict(pose=(0.9, 2.1, 60.0),
-                      waypoints=[(2.2, 1.2), (4.4, 2.4), (4.2, 4.4), (2.6, 4.8), (2.0, 2.6)]),
-}
 
+def snapshot(person="ammar", seed=None, pose=None, t=0.0):
+    """One scan with everything annotated. Returns {"figs": {"snapshot": fig}, "data": {"scan": ...}}.
 
-def snapshot(scene="default", seed=0, pose=None, t=0.0):
-    """One scan with everything annotated. Returns {"figs": {"snapshot": fig}, "data": {"scan": ...}}."""
-    world = get_scene(scene)
+    pose = [x, y, heading_deg]; default: the person's [tour] pose.
+    """
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    world = scene_of(cfg)
     params = LidarParams()
-    px, py, ph = TOURS[scene]["pose"] if pose is None else pose
-    pose = np.array([px, py, np.radians(ph)])
+    pose = pose_rad(cfg["tour"]["pose"] if pose is None else pose)
     s = scan(world, pose, params, rng=np.random.default_rng(seed), t=t)
     fig = plt.figure(figsize=(11, 4.8))
     ax = fig.add_subplot(1, 2, 1)
@@ -50,11 +46,13 @@ def snapshot(scene="default", seed=0, pose=None, t=0.0):
     return {"figs": {"snapshot": fig}, "data": {"scan": s}}
 
 
-def animate(out_paths, scene="default", seed=0, speed=0.5, dt=0.2, fps=8):
-    """Drive the tour loop and write it to each path (.gif or .mp4). Returns the paths."""
-    world = get_scene(scene)
+def animate(out_paths, person="ammar", seed=None, speed=0.5, dt=0.2, fps=8):
+    """Drive the person's tour loop and write it to each path (.gif or .mp4). Returns the paths."""
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    world = scene_of(cfg)
     params = LidarParams()
-    times, poses = waypoint_path(TOURS[scene]["waypoints"], speed, dt)
+    times, poses = waypoint_path(cfg["tour"]["waypoints"], speed, dt)
     rng = np.random.default_rng(seed)
     fig = plt.figure(figsize=(10.5, 4.6))
     ax = fig.add_subplot(1, 2, 1)
@@ -81,9 +79,9 @@ def animate(out_paths, scene="default", seed=0, speed=0.5, dt=0.2, fps=8):
 
 def main():
     args = resolve(parser(__doc__).parse_args())
-    finish(snapshot(args.scene, args.seed), args.out, "tour")
+    finish(snapshot(args.person, args.seed), args.out, "tour")
     if not args.no_anim:
-        for p in animate([f"{args.out}/tour.gif"], args.scene, args.seed):
+        for p in animate([f"{args.out}/tour.gif"], args.person, args.seed):
             print(p)
 
 

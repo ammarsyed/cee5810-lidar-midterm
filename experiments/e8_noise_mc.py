@@ -5,14 +5,14 @@
 (b) Estimated sigma_R vs range with 95% chi-square confidence intervals vs c sigma_t / 2.
 (c) Bias (mean error) vs range with 95% intervals.
 
-Run: uv run python -m experiments.e8_noise_mc [--person partner] [--fast]
+Run: uv run python -m experiments.e8_noise_mc --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import chi2, kstest, norm
 
-from experiments.common import finish, parser, resolve
+from experiments.common import finish, load_person, parser, resolve
 from lidar_sim import viz
 from lidar_sim.noise import sample_measurement
 from lidar_sim.scenes import single_wall
@@ -28,11 +28,13 @@ def _measure(r, n, rng, rho=0.9):
     return z[det], tb["true_range"][0, 0]
 
 
-def run(scene="default", seed=0, fast=False):
-    rng = np.random.default_rng(seed + (0 if scene == "default" else 1000))
+def run(person="ammar", seed=None, fast=False):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    rng = np.random.default_rng(seed)
     sigma = ONE.sigma_r
     n = 300 if fast else 1000
-    z, R = _measure(3.0, n, rng)
+    z, R = _measure(float(cfg["e8"]["wall_range"]), n, rng)
     ks = kstest(z, norm(R, sigma).cdf)
 
     fig1, ax = plt.subplots(figsize=(6.4, 3.8))
@@ -88,7 +90,7 @@ def run(scene="default", seed=0, fast=False):
 
 def main():
     args = resolve(parser(__doc__).parse_args())
-    finish(run(args.scene, args.seed, args.fast), args.out, "e8")
+    finish(run(args.person, args.seed, args.fast), args.out, "e8")
 
 
 if __name__ == "__main__":

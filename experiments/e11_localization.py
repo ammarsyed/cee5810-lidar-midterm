@@ -10,14 +10,14 @@ Repeated over many seeds; we report position/heading error, divergence rate and 
 Scenarios: the glass corridor (parallel walls, so along-corridor information mostly comes through
 the glass) and the person's own room.
 
-Run: uv run python -m experiments.e11_localization [--person partner] [--fast]
+Run: uv run python -m experiments.e11_localization --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 
-from experiments.common import finish, parser, resolve
+from experiments.common import finish, load_person, parser, resolve
 from lidar_sim import viz
 from lidar_sim.geometry import wrap_angle
 from lidar_sim.localization.likelihood import make_model
@@ -150,8 +150,11 @@ def summarise(name, world, runs):
     return figs, rows
 
 
-def run(scene="default", seed=0, fast=False, animate_to=None):
-    n_seeds = 3 if fast else 20
+def run(person="ammar", seed=None, fast=False, animate_to=None):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    scene = cfg["scene"]
+    n_seeds = 3 if fast else cfg["e11"]["n_seeds"]
     seeds = list(range(seed, seed + n_seeds))
     M = 150 if fast else 300
     figs, tables, data = {}, {}, {}
@@ -195,7 +198,7 @@ def _animate(name, seed, M, path):
 def main():
     args = resolve(parser(__doc__).parse_args())
     anim = None if args.no_anim else f"{args.out}/e11_particles.gif"
-    finish(run(args.scene, args.seed, args.fast, animate_to=anim), args.out, "e11")
+    finish(run(args.person, args.seed, args.fast, animate_to=anim), args.out, "e11")
 
 
 if __name__ == "__main__":

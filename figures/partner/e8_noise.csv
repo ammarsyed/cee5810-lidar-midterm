@@ -1,7 +1,0 @@
-quantity,value
-samples at 3 m,1000
-KS statistic,0.02333615774155212
-KS p-value,0.6387072486632241
-mean estimated σ_R [cm],1.0080498369923796
-ranges whose 95% CI contains 1 cm,100%
-max |bias| [mm],0.9587248668454507

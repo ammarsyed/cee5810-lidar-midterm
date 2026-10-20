@@ -1,3 +1,0 @@
-beam,dR/d(position) closed form,max |sim − closed form| on wall (noise-free) [m],RMS measured error on wall [m],detected,samples blocked by another object
-β=0°: top wall,-1.000,4.440892098500626e-16,0.00989597459012651,87%,0
-β=+90°: left wall,-0.000,0.0,0.009209718092491893,100%,0

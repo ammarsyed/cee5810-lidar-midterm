@@ -334,7 +334,7 @@ The notebook calls `run()` directly, so there's one source of truth for every fi
 
 Also: a `figures/<person>/params_table.md` dump of all parameters used, for the report's Procedure section.
 
-> **Prompt:** *"Read docs/03_CODE_PLAN.md §6 Stage 6 and PROGRESS.md. Implement experiments E1, E3, E5, E7 (+ the BN CPT script) with run()/main(), the shared CLI, theory overlays and consistent figure style, writing to figures/ammar/. Commit, update PROGRESS.md."* (Partner, or a later session: E2, E4, E6, E8 to `figures/partner/` with a different scene variant.)
+> **Prompt:** *"Read docs/03_CODE_PLAN.md §6 Stage 6 and PROGRESS.md. Implement experiments E1, E3, E5, E7 (+ the BN CPT script) with run()/main(), the shared CLI, theory overlays and consistent figure style, writing to figures/ammar/. Commit, update PROGRESS.md."* (Partner, or a later session: E2, E4, E6, E8 to `figures/gal/` with a different scene variant.)
 
 ### Stage 7 — Localization: particle filter, naive vs physics-aware (L, split into 7a/7b) — Upgrade U1
 **Goal:** the sensor model gets *used*: three particle filters estimate the robot's pose from scans, and we show where the naive model fails.
@@ -413,7 +413,7 @@ Also: a `figures/<person>/params_table.md` dump of all parameters used, for the 
 **Done when:** tests pass; E12 and E13 figures (plus one rotating 3D point-cloud MP4) exist.
 
 > **Prompt (8a):** *"Read docs/03_CODE_PLAN.md Stage 8, docs/02_DERIVATIONS.md D14 and PROGRESS.md. Do Stage 8a: add trimesh + embreex usage via the Mesh3D backend, scenes3d (extrude + default_room_3d with low box and table), rot3d and sensor3d, and the listed tests (Möller–Trumbore cross-check, 2D-slice identity, floor ring, blind zone, 3D ghost theorem, speed). Commit, update PROGRESS.md."*
-> **Prompt (8b):** *"Continue with Stage 8b: viz3d (range image, 3D scatter, bird's-eye, rotating animation) and experiments E12 and E13 with run()/main() and theory overlays, writing to figures/partner/ (E12) and figures/ammar/ (E13). Commit, update PROGRESS.md."*
+> **Prompt (8b):** *"Continue with Stage 8b: viz3d (range image, 3D scatter, bird's-eye, rotating animation) and experiments E12 and E13 with run()/main() and theory overlays, writing to figures/gal/ (E12) and figures/ammar/ (E13). Commit, update PROGRESS.md."*
 
 ### Stage 9a — Interactive slider demo (M)
 **Goal:** a "UI" you can play with live and screen-record for the media. It's a desktop matplotlib window, not a website.

@@ -1,4 +1,6 @@
-# Simulation parameters (default scene)
+# Simulation parameters — Ammar (default scene, base seed 0)
+
+Experiment-specific settings (poses, reflectivities, distances, tilt, …) are in people/ammar.toml.
 
 ## Sensor (2D, Hokuyo URG-04LX-like)
 

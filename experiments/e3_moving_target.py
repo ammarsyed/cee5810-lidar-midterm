@@ -4,15 +4,14 @@ The sensor is fixed; the box moves through one full back-and-forth period. The p
 box geometry alone (a world containing only the box); the simulation uses the full scene, so the
 two differ exactly where something else blocks the line of sight.
 
-Run: uv run python -m experiments.e3_moving_target [--person partner] [--fast]
+Run: uv run python -m experiments.e3_moving_target --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from experiments.common import finish, parser, preset, resolve
+from experiments.common import finish, load_person, parser, resolve, scene_of
 from lidar_sim import viz
-from lidar_sim.scenes import get_scene
 from lidar_sim.sensor import LidarParams, scan
 from lidar_sim.world import World
 
@@ -30,9 +29,11 @@ def _intervals(mask, t):
     return out
 
 
-def run(scene="default", seed=0, fast=False, animate_to=None):
-    pr = preset(scene, "e3")
-    world = get_scene(scene)
+def run(person="ammar", seed=None, fast=False, animate_to=None):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    pr = cfg["e3"]
+    world = scene_of(cfg)
     box = world.movers[0]
     box_only = World([], [box])
     params = LidarParams()
@@ -53,7 +54,7 @@ def run(scene="default", seed=0, fast=False, animate_to=None):
         full.append(scan(world, pose, params, noise=False, t=t).ranges)
         n_box.append(int((s.detected & np.isin(s.surface_id, box_ids)).sum()))
     z_beam, pred_beam, full, n_box = map(np.array, (z_beam, pred_beam, full, n_box))
-    static = scan(get_scene(scene, with_moving_box=False), pose, params, noise=False).true_ranges[i]
+    static = scan(scene_of(cfg, with_moving_box=False), pose, params, noise=False).true_ranges[i]
 
     fig1, ax = plt.subplots(figsize=(7.2, 4.0))
     ax.axhline(static, color=viz.MUTED, lw=1.2, ls="--", label="background (no box)")
@@ -78,7 +79,7 @@ def run(scene="default", seed=0, fast=False, animate_to=None):
     ax2.grid(False)
 
     fig3, ax3 = plt.subplots(figsize=(6.4, 5))
-    viz.draw_world(ax3, get_scene(scene, with_moving_box=False))
+    viz.draw_world(ax3, scene_of(cfg, with_moving_box=False))
     traj = np.array([box.trajectory(t)[:2] for t in times])
     ax3.plot(*traj.T, color=viz.ORANGE, lw=1.2, ls=":", label="box path")
     for t in (times[0], times[len(times) // 4]):
@@ -129,7 +130,7 @@ def _animate(world, pose, params, times, seed, path):
 def main():
     args = resolve(parser(__doc__).parse_args())
     anim = None if args.no_anim else f"{args.out}/e3_moving_box.gif"
-    finish(run(args.scene, args.seed, args.fast, animate_to=anim), args.out, "e3")
+    finish(run(args.person, args.seed, args.fast, animate_to=anim), args.out, "e3")
 
 
 if __name__ == "__main__":

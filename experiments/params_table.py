@@ -1,21 +1,23 @@
 """Dump every model parameter and the scene layout to params_table.md (for the report's Procedure).
 
-Run: uv run python -m experiments.params_table [--person partner]
+Run: uv run python -m experiments.params_table --person ammar|gal
 """
 
 from pathlib import Path
 
-from experiments.common import parser, resolve
+from experiments.common import load_person, parser, resolve, scene_of
 from lidar_sim import config
 from lidar_sim.physics import max_range
-from lidar_sim.scenes import get_scene
 from lidar_sim.sensor import LidarParams
 
 
-def run(scene="default", seed=0, fast=False):
+def run(person="ammar", seed=None, fast=False):
+    cfg = load_person(person)
     p = LidarParams()
-    w = get_scene(scene)
-    lines = [f"# Simulation parameters ({scene} scene)", "", "## Sensor (2D, Hokuyo URG-04LX-like)", "",
+    w = scene_of(cfg)
+    lines = [f"# Simulation parameters — {cfg['name']} ({cfg['scene']} scene, base seed {cfg['seed']})", "",
+             f"Experiment-specific settings (poses, reflectivities, distances, tilt, …) are in people/{cfg['key']}.toml.",
+             "", "## Sensor (2D, Hokuyo URG-04LX-like)", "",
              "| parameter | symbol | value |", "|---|---|---|",
              f"| angular FOV | Φ | {p.fov_deg:.0f}° |", f"| beams | N | {p.n_beams} (Δβ = {p.fov_deg / (p.n_beams - 1):.1f}°) |",
              f"| min range | R_min | {p.r_min} m |", f"| timing jitter | σ_t | {p.sigma_t * 1e12:.1f} ps |",
@@ -44,7 +46,7 @@ def main():
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     path = out / "params_table.md"
-    path.write_text(run(args.scene)["text"])
+    path.write_text(run(args.person)["text"])
     print(path)
 
 

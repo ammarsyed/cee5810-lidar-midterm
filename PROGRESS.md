@@ -7,8 +7,8 @@
 - Experiments: all 13, plus the CPT.
 - Demo tools: slider app, demo board, room tour.
 - Notebook: runs top to bottom.
-- Tests: 136 passing; lint clean.
-- Media: both people's sets regenerated with the final model (`figures/ammar/`, `figures/partner/`).
+- Tests: 140 passing; lint clean.
+- Media: both people's sets regenerated with the final model (`figures/ammar/`, `figures/gal/`). Each person has a config (`people/ammar.toml`, `people/gal.toml`), and no output file is identical between them.
 - Math doc and partner page: reconciled after 4 review rounds.
 
 ## What's left
@@ -333,3 +333,24 @@ Paths in entries before 2026-10-20 predate the reorganisation: `plan/` is now `d
 **Git:** history rewritten to drop AI co-author trailers; only the human author is listed.
 
 **Tests:** 136 passed.
+
+
+## 2026-10-20 — Per-person configs (Ammar / Gal) ✅
+
+**New config files**
+- `people/ammar.toml` and `people/gal.toml` replace the per-scene presets in `experiments/common.py`.
+- Each holds: room (`default` / `variant_b`), base seed (0 / 100), output folder (`figures/ammar` / `figures/gal`), the box speed, the tour pose and loop, and every experiment's poses and parameters.
+- Examples of what differs: E4 reflectivities, E6 angle grid, E7 reflectivities, E8 wall distance, E9 range span, E10 edge geometry, E12 mount tilt.
+- The physics stays shared.
+
+**Code changes**
+- Every experiment is now `run(person, seed=None, fast=False)`.
+- `--person ammar|gal` everywhere. The default is `$LIDAR_PERSON`, otherwise the scripts ask "Who are you? (Ammar / Gal)".
+- `partner` → `gal` (folder `figures/partner` → `figures/gal`). The notebook uses `PERSON = "ammar"`.
+- The slider app, tour and demo board take the person too.
+
+**Docs**
+- AGENTS.md now tells AI assistants to ask "Are you Ammar or Gal?" first.
+- README has a "Who's who" section. DECISIONS #11 added.
+
+**Tests:** 140 passed. New `tests/test_people.py` checks both configs have the same structure and differ.

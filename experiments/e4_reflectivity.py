@@ -5,18 +5,18 @@
 (b) Per-beam detection rate over repeated scans near a dark wall vs the model's P_D.
 (c) Max range vs incidence angle: simulated (bisection on the traced power) vs R0 sqrt(cos θ).
 
-Run: uv run python -m experiments.e4_reflectivity [--person partner] [--fast]
+Run: uv run python -m experiments.e4_reflectivity --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import brentq
 
-from experiments.common import finish, parser, preset, resolve
+from experiments.common import finish, load_person, parser, resolve, scene_of
 from lidar_sim import viz
 from lidar_sim.noise import detection_prob, sample_measurement
 from lidar_sim.physics import diffuse_power, max_range
-from lidar_sim.scenes import get_scene, single_wall
+from lidar_sim.scenes import single_wall
 from lidar_sim.sensor import LidarParams, scan, trace_beams
 
 ONE = LidarParams(fov_deg=0.0, n_beams=1)
@@ -26,9 +26,11 @@ def _power(r, rho, angle_deg=0.0):
     return trace_beams(single_wall(r, rho, angle_deg), [0, 0, 0], ONE)["power"][0, 0]
 
 
-def run(scene="default", seed=0, fast=False):
+def run(person="ammar", seed=None, fast=False):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
     rng = np.random.default_rng(seed)
-    rhos = [0.1, 0.2, 0.5, 0.9]
+    rhos = [float(r) for r in cfg["e4"]["rhos"]]
     ranges = np.linspace(0.3, 6.5, 22 if fast else 45)
     n_mc = 80 if fast else 300
 
@@ -54,8 +56,8 @@ def run(scene="default", seed=0, fast=False):
     ax.legend(fontsize=7.5, loc="upper right")
 
     # (b) repeated scans near a dark wall
-    pr = preset(scene, "e4")
-    world = get_scene(scene, with_moving_box=False)
+    pr = cfg["e4"]
+    world = scene_of(cfg, with_moving_box=False)
     pose = np.array([pr["pose"][0], pr["pose"][1], np.radians(pr["pose"][2])])
     n_scans = 40 if fast else 150
     det = np.array([scan(world, pose, rng=rng).detected for _ in range(n_scans)])
@@ -80,7 +82,7 @@ def run(scene="default", seed=0, fast=False):
 
     # (c) orientation: max range vs incidence angle
     angles = np.linspace(0, 80, 9 if fast else 17)
-    rho = 0.5
+    rho = float(cfg["e4"]["incidence_rho"])
     sim = [brentq(lambda r, a=a: _power(r, rho, a) - 1.0, 0.05, 30) for a in angles]
     fig3, ax3 = plt.subplots(figsize=(6.4, 3.8))
     fine = np.linspace(0, 85, 200)
@@ -101,7 +103,7 @@ def run(scene="default", seed=0, fast=False):
 
 def main():
     args = resolve(parser(__doc__).parse_args())
-    finish(run(args.scene, args.seed, args.fast), args.out, "e4")
+    finish(run(args.person, args.seed, args.fast), args.out, "e4")
 
 
 if __name__ == "__main__":

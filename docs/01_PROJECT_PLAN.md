@@ -1,6 +1,6 @@
 # Midterm Project Plan — LiDAR Simulation (2D + 3D) with Mirrors, Glass, Fog & Localization
 
-> **Status (2026-10-19):** the simulator and every experiment (E1–E13, incl. both upgrades) are built. Results are summarised in `README.md`; figures and paste-ready tables are in `figures/ammar/` and `figures/partner/`. Remaining work: the two reports (§8).
+> **Status (2026-10-19):** the simulator and every experiment (E1–E13, incl. both upgrades) are built. Results are summarised in `README.md`; figures and paste-ready tables are in `figures/ammar/` and `figures/gal/` (the partner is Gal; each person's setup is in `people/<name>.toml`). Remaining work: the two reports (§8).
 
 > Team doc. Read this first. Then:
 > - `02_DERIVATIONS.md` → the math (mainly partner)

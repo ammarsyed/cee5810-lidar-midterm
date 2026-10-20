@@ -1,8 +1,0 @@
-quantity,value
-R_amb at f₁ [m],3.220112330827068
-R_amb at f₂ [m],2.8175982894736844
-beat ambiguity c/2|f₁−f₂| [m],22.540786315789475
-phase noise σ_φ [rad],0.019512317154370157
-"two-frequency RMS error, successful unwraps [cm]",0.9942689281520355
-unwrap failures (|error| > 0.5 m),0.40%
-failures occur at true ranges [m],"0.05, 0.06, 0.07, 22.41, 22.47, 22.49, 22.50, 22.52 …"

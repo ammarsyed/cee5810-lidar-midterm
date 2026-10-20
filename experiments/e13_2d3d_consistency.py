@@ -4,23 +4,24 @@ On the extruded room (walls, mirror and glass all vertical; floor and ceiling ad
 (a) the ε = 0 ring of the 3D sensor vs the 2D sensor, beam by beam (noise-free), incl. ghosts;
 (b) R_3D / R_2D for every ring on wall hits vs 1/cos ε.
 
-Run: uv run python -m experiments.e13_2d3d_consistency [--person partner] [--fast]
+Run: uv run python -m experiments.e13_2d3d_consistency --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from experiments.common import finish, parser, preset, resolve
+from experiments.common import finish, load_person, parser, resolve, scene_of
 from lidar_sim import viz
-from lidar_sim.scenes import get_scene
 from lidar_sim.scenes3d import extrude
 from lidar_sim.sensor import scan
 from lidar_sim.sensor3d import LidarParams3D, scan3d
 
 
-def run(scene="default", seed=0, fast=False):
-    pr = preset(scene, "e13")
-    w2 = get_scene(scene, with_moving_box=False)
+def run(person="ammar", seed=None, fast=False):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    pr = cfg["e13"]
+    w2 = scene_of(cfg, with_moving_box=False)
     sc = extrude(w2, 3.0)
     pose = np.array([pr["pose"][0], pr["pose"][1], np.radians(pr["pose"][2])])
     s2 = scan(w2, pose, noise=False)
@@ -80,7 +81,7 @@ def run(scene="default", seed=0, fast=False):
 
 def main():
     args = resolve(parser(__doc__).parse_args())
-    finish(run(args.scene, args.seed, args.fast), args.out, "e13")
+    finish(run(args.person, args.seed, args.fast), args.out, "e13")
 
 
 if __name__ == "__main__":

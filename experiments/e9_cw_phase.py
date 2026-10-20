@@ -4,20 +4,22 @@ The Hokuyo measures range from the phase shift of an amplitude-modulated laser. 
 rolls over every R_amb = c/(2f) (3.22 m at 46.55 MHz); two frequencies (46.55 and 53.2 MHz) unwrap it
 up to c/(2|f1 - f2|) = 22.5 m. Phase noise is set so the f1 range noise is sigma_R = 1 cm.
 
-Run: uv run python -m experiments.e9_cw_phase [--person partner] [--fast]
+Run: uv run python -m experiments.e9_cw_phase --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from experiments.common import finish, parser, resolve
+from experiments.common import finish, load_person, parser, resolve
 from lidar_sim import config, viz
 from lidar_sim.phase import F1, F2, ambiguity_range, phase_of, phase_range, two_frequency_range
 
 
-def run(scene="default", seed=0, fast=False):
+def run(person="ammar", seed=None, fast=False):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
     rng = np.random.default_rng(seed)
-    R = np.linspace(0.05, 25.0, 600 if fast else 2500)
+    R = np.linspace(0.05, float(cfg["e9"]["range_span"]), 600 if fast else 2500)
     sigma_phi = 4 * np.pi * F1 * config.SIGMA_R / config.C  # phase noise giving 1 cm at f1
     phi1 = np.mod(phase_of(R, F1) + rng.normal(0, sigma_phi, R.shape), 2 * np.pi)
     phi2 = np.mod(phase_of(R, F2) + rng.normal(0, sigma_phi * F2 / F1, R.shape), 2 * np.pi)
@@ -57,7 +59,7 @@ def run(scene="default", seed=0, fast=False):
 
 def main():
     args = resolve(parser(__doc__).parse_args())
-    finish(run(args.scene, args.seed, args.fast), args.out, "e9")
+    finish(run(args.person, args.seed, args.fast), args.out, "e9")
 
 
 if __name__ == "__main__":

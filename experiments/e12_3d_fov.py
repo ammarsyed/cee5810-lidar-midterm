@@ -7,13 +7,13 @@
 (d) Mirror ghosts in 3D: the whole virtual room behind the mirror.
 (e) Fog in 3D: fraction of rays detected vs α.
 
-Run: uv run python -m experiments.e12_3d_fov [--person partner] [--fast]
+Run: uv run python -m experiments.e12_3d_fov --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from experiments.common import finish, parser, preset, resolve
+from experiments.common import finish, load_person, parser, resolve
 from lidar_sim import viz, viz3d
 from lidar_sim.geometry import rot3d
 from lidar_sim.materials import matte
@@ -37,8 +37,11 @@ def _floor_only():
     return sc
 
 
-def run(scene="default", seed=0, fast=False, animate_to=None):
-    pr = preset(scene, "e12")
+def run(person="ammar", seed=None, fast=False, animate_to=None):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    scene = cfg["scene"]
+    pr = cfg["e12"]
     rng = np.random.default_rng(seed)
     sc = get_scene3d(scene)
     p3 = LidarParams3D()
@@ -65,7 +68,7 @@ def run(scene="default", seed=0, fast=False, animate_to=None):
     fl = _floor_only()
     fig2, ax2 = plt.subplots(figsize=(7.0, 3.8))
     rows = []
-    for k, tilt in enumerate((0.0, 5.0)):
+    for k, tilt in enumerate((0.0, float(cfg["e12"]["tilt_deg"]))):
         s = scan3d(fl, [0, 0, 0], p3.with_(elevations_override=(-15.0,), tilt_deg=tilt), noise=False)
         sim = np.linalg.norm(s.true_hits[0, :, :2], axis=1)
         az = s.azimuths
@@ -125,7 +128,7 @@ def run(scene="default", seed=0, fast=False, animate_to=None):
 def main():
     args = resolve(parser(__doc__).parse_args())
     anim = None if args.no_anim else f"{args.out}/e12_rotate.gif"
-    finish(run(args.scene, args.seed, args.fast, animate_to=anim), args.out, "e12")
+    finish(run(args.person, args.seed, args.fast, animate_to=anim), args.out, "e12")
 
 
 if __name__ == "__main__":

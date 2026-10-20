@@ -6,13 +6,13 @@ and estimate two conditional probability tables by counting simulated shots at a
   P(D = T | material, fog, range)        — any return detected
   P(S = target | material, fog, range)   — the detected return comes from the target surface itself
 
-Run: uv run python -m experiments.e_bn_cpt [--person partner] [--fast]
+Run: uv run python -m experiments.e_bn_cpt --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from experiments.common import finish, parser, resolve
+from experiments.common import finish, load_person, parser, resolve
 from lidar_sim import viz
 from lidar_sim.materials import glass, matte, mirror
 from lidar_sim.noise import sample_measurement
@@ -34,8 +34,10 @@ def _world(material, r, inc_deg, alpha):
     return World([target] + room, [], alpha, "cpt")
 
 
-def run(scene="default", seed=0, fast=False):
-    rng = np.random.default_rng(seed + (0 if scene == "default" else 1000))
+def run(person="ammar", seed=None, fast=False):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    rng = np.random.default_rng(seed)
     n = 120 if fast else 500
     shape = (len(MATERIALS), len(FOGS), len(RANGES))
     p_det, p_tgt = np.zeros(shape), np.zeros(shape)
@@ -78,7 +80,7 @@ def run(scene="default", seed=0, fast=False):
 
 def main():
     args = resolve(parser(__doc__).parse_args())
-    finish(run(args.scene, args.seed, args.fast), args.out, "cpt")
+    finish(run(args.person, args.seed, args.fast), args.out, "cpt")
 
 
 if __name__ == "__main__":

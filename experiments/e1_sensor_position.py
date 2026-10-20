@@ -4,15 +4,14 @@ The sensor translates along a straight path with a fixed heading. For selected b
 the simulated range with the closed form R = (d - n.p) / (n.u) for a flat wall, and show that
 moving parallel to a wall leaves that wall's range unchanged (dR/dp is proportional to n).
 
-Run: uv run python -m experiments.e1_sensor_position [--person partner] [--fast]
+Run: uv run python -m experiments.e1_sensor_position --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from experiments.common import finish, parser, preset, resolve
+from experiments.common import finish, load_person, parser, resolve, scene_of
 from lidar_sim import viz
-from lidar_sim.scenes import get_scene
 from lidar_sim.sensor import LidarParams, beam_directions, scan
 
 
@@ -21,9 +20,11 @@ def _closed_form(p, u, n, d):
     return (d - p @ n) / (u @ n)
 
 
-def run(scene="default", seed=0, fast=False, animate_to=None):
-    pr = preset(scene, "e1")
-    world = get_scene(scene, with_moving_box=False)
+def run(person="ammar", seed=None, fast=False, animate_to=None):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    pr = cfg["e1"]
+    world = scene_of(cfg, with_moving_box=False)
     params = LidarParams()
     rng = np.random.default_rng(seed)
     n = 31 if fast else 61
@@ -127,7 +128,7 @@ def _animate(world, poses, params, seed, path):
 def main():
     args = resolve(parser(__doc__).parse_args())
     anim = None if args.no_anim else f"{args.out}/e1_drive.gif"
-    finish(run(args.scene, args.seed, args.fast, animate_to=anim), args.out, "e1")
+    finish(run(args.person, args.seed, args.fast, animate_to=anim), args.out, "e1")
 
 
 if __name__ == "__main__":

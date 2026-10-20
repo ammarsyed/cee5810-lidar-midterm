@@ -1,0 +1,70 @@
+# Ammar's run of the shared simulator. Everything that makes Ammar's media different from Gal's
+# lives here: room, random seed, output folder, and each experiment's poses / parameters.
+# The physics (sensor, materials, noise) is shared and lives in lidar_sim/config.py.
+# Poses are [x, y, heading_deg]. Use: uv run python -m experiments.run_all --person ammar
+
+name = "Ammar"
+scene = "default"          # 8 x 6 m room (lidar_sim/scenes.py: default_room)
+seed = 0                   # base random seed for every experiment
+out = "figures/ammar"
+
+[scene_options]            # passed to the room builder
+box_speed = 0.5            # moving box speed [m/s]
+
+[tour]                     # demo/tour.py and the slider app's starting pose
+pose = [4.6, 3.2, 14.0]
+waypoints = [[1.2, 1.5], [4.0, 3.2], [6.0, 2.6], [4.0, 3.6], [1.5, 3.0]]
+
+[e1]                       # sensor position: straight path + beams with a closed-form wall
+start = [2.8, 3.0]
+end = [5.8, 3.0]
+heading_deg = 0.0
+beams = [[0.0, [1, 0], 8.0, "β=0°: right wall"],
+         [90.0, [0, 1], 6.0, "β=+90°: top wall"],
+         [-90.0, [0, 1], 0.0, "β=−90°: bottom wall (dark 3–5 m)"]]
+
+[e2]
+pose = [3.0, 3.0]          # x, y (the heading is swept)
+
+[e3]
+pose = [3.2, 2.0, 90.0]
+beam_deg = 0.0
+
+[e4]
+pose = [4.0, 1.75, -90.0]
+rhos = [0.1, 0.2, 0.5, 0.9]  # reflectivities for the P_D-vs-range curves
+incidence_rho = 0.5          # reflectivity for the max-range-vs-tilt plot
+
+[e5]
+pose = [6.9, 2.4, 150.0]
+
+[e6]
+glass_dist = 2.0
+wall_dist = 4.0
+room_pose = [2.4, 1.5, -10.0]
+angle_offset_deg = 0.0     # start of the incidence-angle grid
+
+[e7]
+pose = [3.0, 3.2, 0.0]
+rhos = [0.9, 0.5, 0.2]
+
+[e8]
+wall_range = 3.0           # distance of the wall for the noise histogram [m]
+
+[e9]
+range_span = 25.0          # true ranges swept [m]
+
+[e10]
+near = 2.0                 # box edge distance [m]
+far = 3.0                  # wall behind it [m]
+
+[e11]
+n_seeds = 20               # particle-filter runs per scenario
+
+[e12]
+pose = [1.6, 2.8, 0.0]
+ghost_pose = [6.9, 2.4, 150.0]
+tilt_deg = 5.0             # mount tilt for the floor-ring plot
+
+[e13]
+pose = [4.6, 3.2, 14.0]

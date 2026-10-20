@@ -1,8 +1,10 @@
 """Interactive slider demo: drag the sensor, fog, mirror and box; watch the scan update.
 
-Desktop window:   uv run python -m demo.interactive [--scene variant_b]
-Record a video:   uv run python -m demo.interactive --record figures/ammar/demo.mp4
-In the notebook:  %matplotlib widget  then  from demo.interactive import launch; launch()
+Desktop window:   uv run python -m demo.interactive --person ammar|gal
+Record a video:   uv run python -m demo.interactive --person gal --record figures/gal/demo.mp4
+In the notebook:  %matplotlib widget  then  from demo.interactive import launch; launch("gal")
+
+The room, its options and the starting pose come from people/<person>.toml.
 """
 
 import argparse
@@ -12,23 +14,28 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.widgets import Button, CheckButtons, RadioButtons, Slider
 
+from experiments.common import ask_person, load_person, people
 from lidar_sim import viz
 from lidar_sim.scenes import SCENES
 from lidar_sim.sensor import LidarParams, scan, visibility_polygon
 
-DEFAULT_POSE = {"default": (4.6, 3.2, 14.0), "variant_b": (2.6, 3.0, 60.0), "glass_corridor": (3.0, 1.2, 0.0)}
+DEFAULT_POSE = {"glass_corridor": (3.0, 1.2, 0.0)}  # fallback when no pose is given
 DEFAULT_MIRROR = {"default": 45.0, "variant_b": 135.0}
 
 
-def build(scene="default", params=None, seed=0):
-    """Create the demo figure. Returns (fig, controls); controls["state"]["scan"] is the latest scan."""
+def build(scene="default", params=None, seed=0, pose=None, scene_options=None):
+    """Create the demo figure. Returns (fig, controls); controls["state"]["scan"] is the latest scan.
+
+    pose = [x, y, heading_deg] start pose; scene_options are passed to the room builder.
+    """
     params = params or LidarParams()
     builder = SCENES[scene]
-    probe = builder()
+    opts = dict(scene_options or {})
+    probe = builder(**opts)
     lo, hi = probe.bounds()
     box = probe.movers[0] if probe.movers else None
     period = float(getattr(box.trajectory, "period", 16.0)) if box else 16.0
-    x0, y0, th0 = DEFAULT_POSE.get(scene, (2.0, 2.0, 0.0))
+    x0, y0, th0 = pose if pose is not None else DEFAULT_POSE.get(scene, (2.0, 2.0, 0.0))
 
     fig = plt.figure(figsize=(12.5, 7.2))
     ax = fig.add_axes([0.04, 0.34, 0.50, 0.62])
@@ -56,7 +63,9 @@ def build(scene="default", params=None, seed=0):
     has_mirror = any(s.name == "mirror" for s in probe.segments)
 
     def world_now():
-        kw = dict(fog_alpha=sl["fog"].val, box_rho=sl["rho"].val) if box else dict(fog_alpha=sl["fog"].val)
+        kw = dict(opts, fog_alpha=sl["fog"].val)
+        if box:
+            kw["box_rho"] = sl["rho"].val
         if has_mirror and scene in DEFAULT_MIRROR:
             kw["mirror_angle_deg"] = sl["mirror"].val
         return builder(**kw)
@@ -114,15 +123,21 @@ def set_values(controls, **vals):
     controls["redraw"]()
 
 
-def launch(scene="default", **kw):
-    fig, controls = build(scene, **kw)
+def build_for(person="ammar", **kw):
+    """build() with the room, options, start pose and seed from people/<person>.toml."""
+    cfg = load_person(person)
+    return build(cfg["scene"], seed=cfg["seed"], pose=cfg["tour"]["pose"], scene_options=cfg.get("scene_options"), **kw)
+
+
+def launch(person="ammar", **kw):
+    fig, controls = build_for(person, **kw)
     plt.show()
     return fig, controls
 
 
-def record(path, scene="default", n=120, fps=15):
+def record(path, person="ammar", n=120, fps=15):
     """Scripted sweep -> video: drive the sensor, then thicken the fog, then rotate the mirror."""
-    fig, c = build(scene)
+    fig, c = build_for(person)
     sl = c["sliders"]
     x0, x1 = sl["x"].valmin + 1.0, min(sl["x"].valmax - 1.5, sl["x"].valmin + 5.0)
     y_mid = 0.5 * (sl["y"].valmin + sl["y"].valmax)
@@ -143,15 +158,16 @@ def record(path, scene="default", n=120, fps=15):
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--scene", default="default", choices=list(SCENES))
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--person", choices=people(), default=None, help="default: $LIDAR_PERSON, else asks")
     ap.add_argument("--record", default=None, help="save a scripted sweep to this .mp4/.gif instead of opening a window")
     args = ap.parse_args()
+    person = (args.person or ask_person()).lower()
     if args.record:
         matplotlib.use("Agg")
-        print(record(args.record, args.scene))
+        print(record(args.record, person))
     else:
-        launch(args.scene)
+        launch(person)
 
 
 if __name__ == "__main__":

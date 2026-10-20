@@ -5,17 +5,17 @@
     the closed form R_max = W0(α R0)/α for three reflectivities.
 (c) Fraction of beams detected in the room vs α (Monte Carlo mean ± std).
 
-Run: uv run python -m experiments.e7_fog [--person partner] [--fast]
+Run: uv run python -m experiments.e7_fog --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import brentq
 
-from experiments.common import finish, parser, preset, resolve
+from experiments.common import finish, load_person, parser, resolve, scene_of
 from lidar_sim import viz
 from lidar_sim.physics import max_range
-from lidar_sim.scenes import get_scene, single_wall
+from lidar_sim.scenes import single_wall
 from lidar_sim.sensor import LidarParams, scan, trace_beams
 
 ONE = LidarParams(fov_deg=0.0, n_beams=1)
@@ -26,10 +26,12 @@ def _sim_max_range(rho, alpha):
     return brentq(f, 0.05, 30)
 
 
-def run(scene="default", seed=0, fast=False):
-    pr = preset(scene, "e7")
+def run(person="ammar", seed=None, fast=False):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    pr = cfg["e7"]
     rng = np.random.default_rng(seed)
-    base = get_scene(scene, with_moving_box=False)
+    base = scene_of(cfg, with_moving_box=False)
     pose = np.array([pr["pose"][0], pr["pose"][1], np.radians(pr["pose"][2])])
 
     fig1, axes = plt.subplots(2, 2, figsize=(9.5, 7.6))
@@ -48,7 +50,7 @@ def run(scene="default", seed=0, fast=False):
     fig2, ax2 = plt.subplots(figsize=(6.8, 4.0))
     rows = []
     fine = np.linspace(0, 0.5, 200)
-    for k, rho in enumerate((0.9, 0.5, 0.2)):
+    for k, rho in enumerate(float(r) for r in pr["rhos"]):
         ax2.plot(fine, max_range(rho, alpha=fine), color=viz.SERIES[k], lw=1.8, label=f"ρ = {rho}: W₀(αR₀)/α")
         sim = np.array([_sim_max_range(rho, a) for a in alphas])
         ax2.scatter(alphas, sim, s=16, color=viz.SERIES[k], zorder=4, linewidths=0)
@@ -83,7 +85,7 @@ def run(scene="default", seed=0, fast=False):
 
 def main():
     args = resolve(parser(__doc__).parse_args())
-    finish(run(args.scene, args.seed, args.fast), args.out, "e7")
+    finish(run(args.person, args.seed, args.fast), args.out, "e7")
 
 
 if __name__ == "__main__":

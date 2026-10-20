@@ -14,7 +14,7 @@ Every experiment checks the simulation against a formula from [the derivations](
 
 ---
 
-## Quick start (for the teammate)
+## Quick start (for Gal, or anyone cloning the repo)
 
 **You need:** git, and [uv](https://docs.astral.sh/uv/), which installs the right Python and every library for you. Tested on macOS (Apple Silicon); Linux and Windows should work too, since all dependencies ship pre-built wheels.
 
@@ -28,20 +28,36 @@ git clone https://github.com/ammarsyed/cee5810-lidar-midterm.git
 cd cee5810-lidar-midterm
 uv sync
 
-# 3. check it works (~20 s, 136 tests)
+# 3. check it works (~20 s, 140 tests)
 uv run pytest
 
-# 4. make YOUR figures, tables and videos (~4.5 min) -> figures/partner/
-uv run python -m experiments.run_all --person partner
+# 4. make YOUR figures, tables and videos (~4.5 min) -> figures/gal/
+uv run python -m experiments.run_all --person gal
 
 # 5. open the demo board (all your videos + key figures on one page)
-uv run python -m demo.board --person partner --open
+uv run python -m demo.board --person gal --open
 
 # 6. play with the live slider app
-uv run python -m demo.interactive --scene variant_b
+uv run python -m demo.interactive --person gal
 ```
 
-`--person partner` uses a **different room (variant_b)** than `--person ammar` (the default room). The assignment requires each person's media to be distinct, and this gives you different figures from the same code. The course PDFs (assignment + papers) are not in the repo; you have them on Canvas.
+Tip: `export LIDAR_PERSON=gal` once and you can drop `--person`. Without either, the scripts ask "Who are you? (Ammar / Gal)". The course PDFs (assignment + papers) are not in the repo; you have them on Canvas.
+
+---
+
+## Who's who: one simulator, two configs
+
+The assignment says each person's **media and report must be clearly distinct**. So the code, physics and math are shared, and each person has a config file that sets up *their* experiments:
+
+| | [`people/ammar.toml`](people/ammar.toml) | [`people/gal.toml`](people/gal.toml) |
+|---|---|---|
+| Room | `default`: 8 × 6 m, mirror right at 45°, vertical glass | `variant_b`: 9 × 6 m, mirror left at 135°, diagonal glass |
+| Base random seed | 0 | 100 |
+| Output folder | `figures/ammar/` | `figures/gal/` |
+| Poses / paths for every experiment | own set | own set |
+| Experiment parameters (examples) | reflectivities 0.1/0.2/0.5/0.9, box 0.5 m/s, glass 2 m away, mount tilt 5° | reflectivities 0.15/0.3/0.6/0.8, box 0.4 m/s, glass 1.5 m away, mount tilt 8° |
+
+The result is the **same kinds of charts with different content and numbers**. Room-based figures (scans, ghosts, FOV, tours, 3D) look clearly different. Theory-curve figures (detection vs range, Fresnel, fog, noise) have the same shape but different settings and values. **No output file is identical between the two folders.** To change your setup, edit your own `.toml` and rerun `run_all`.
 
 ---
 
@@ -49,10 +65,10 @@ uv run python -m demo.interactive --scene variant_b
 
 | Thing | What it is | How to open it |
 |---|---|---|
-| **Slider app** (the "front end") | A desktop window: drag the sensor, heading, fog, mirror angle, box position and box reflectivity, and watch the scan, ghosts and see-through glass update live. Includes a return-policy switch, show/hide toggles and a "new noise" button. | `uv run python -m demo.interactive` (add `--scene variant_b` for the partner's room) |
-| **Demo board** | One local web page with every video and the key figures, in presentation order. The safest thing to present from. | `uv run python -m demo.board --open` → `figures/<person>/index.html` |
+| **Slider app** (the "front end") | A desktop window: drag the sensor, heading, fog, mirror angle, box position and box reflectivity, and watch the scan, ghosts and see-through glass update live. Includes a return-policy switch, show/hide toggles and a "new noise" button. | `uv run python -m demo.interactive --person ammar` (or `gal`) |
+| **Demo board** | One local web page with every video and the key figures, in presentation order. The safest thing to present from. | `uv run python -m demo.board --person ammar --open` → `figures/<person>/index.html` |
 | **Videos** | `demo.mp4` (scripted slider sweep), `tour.gif` (drive through the room), `e1_drive.gif`, `e3_moving_box.gif`, `e11_particles.gif` (three particle filters racing), `e12_rotate.mp4` (rotating 3D point cloud) | made by `run_all` into `figures/<person>/`; also on the demo board |
-| **Walkthrough notebook** | Every experiment inline, ending in a theory-vs-simulation summary table. The executed HTML doubles as the code appendix. | live: `uv run jupyter lab notebooks/lidar_walkthrough.ipynb`; static: `uv run jupyter nbconvert --to html --execute notebooks/lidar_walkthrough.ipynb` → `notebooks/lidar_walkthrough.html` |
+| **Walkthrough notebook** | Every experiment inline, ending in a theory-vs-simulation summary table. Set `PERSON = "gal"` in its first cell for Gal's run. The executed HTML doubles as the code appendix. | live: `uv run jupyter lab notebooks/lidar_walkthrough.ipynb`; static: `uv run jupyter nbconvert --to html --execute notebooks/lidar_walkthrough.ipynb` → `notebooks/lidar_walkthrough.html` |
 | **Figures and tables for the report** | PNG figures, plus each table as CSV and paste-ready Markdown; `params_table.md` for the Procedure section | `figures/<person>/` |
 
 Suggested 3–5 minute demo:
@@ -63,12 +79,12 @@ Suggested 3–5 minute demo:
 
 ---
 
-## Results at a glance (default room)
+## Results at a glance (Ammar's run; Gal's numbers are similar)
 
 | ID | What it shows | Checked against | Result |
 |---|---|---|---|
 | E1 | range vs sensor **position** | closed form R = (d − n·p)/(n·u) (D3) | agrees to 4e-16 m; moving parallel to a wall changes nothing |
-| E2 | FOV vs sensor **heading** | x_T ∈ S(x) membership (D4) | 100% agreement (99.4% in variant_b) |
+| E2 | FOV vs sensor **heading** | x_T ∈ S(x) membership (D4) | 100% agreement (99.4% in Gal's room) |
 | E3 | **moving target** enters/leaves a beam | box-only geometry | identical time intervals |
 | E4 | **reflectivity / tilt** → detection | P_D and R_max(ρ, θ) (D5, D6) | R_max to 1e-13 m |
 | E5 | **mirror ghosts** | ghost = mirror image of the true hit (D8) | 2.5e-15 m; ghosts lie on a "virtual room" |
@@ -123,7 +139,7 @@ scan / scan3d ── Bernoulli detection + Gaussian range noise → ranges, repo
 Key ideas:
 - **One backend interface for 2D and 3D.** Physics, noise and return selection are shared, which is why 2D is provably the ε = 0 slice of 3D (E13).
 - **Batched tracing.** 500 poses × 61 beams with mirror + glass take ~19 ms, and one 3D scan (5,760 rays) ~3 ms. That's what makes the particle filter practical.
-- **Per-person presets** (`experiments/common.py`) give each teammate a different room and different poses, so the media are distinct.
+- **Per-person configs** (`people/*.toml`) give each teammate a different room, seeds, poses and parameters, so the media are distinct.
 
 ---
 
@@ -136,6 +152,7 @@ Key ideas:
 | [AGENTS.md](AGENTS.md) / [CLAUDE.md](CLAUDE.md) | instructions for AI coding assistants (CLAUDE.md just imports AGENTS.md) |
 | [PROGRESS.md](PROGRESS.md) | status, what's left, build log |
 | [DECISIONS.md](DECISIONS.md) | modelling decisions with tradeoffs and recommendations |
+| [`people/ammar.toml`](people/ammar.toml), [`people/gal.toml`](people/gal.toml) | each person's room, seed, output folder and experiment settings (see *Who's who*) |
 | [pyproject.toml](pyproject.toml) | dependencies plus pytest and ruff settings |
 | [uv.lock](uv.lock) | exact pinned versions (`uv sync` installs them) |
 | [.python-version](.python-version) | Python 3.12 |
@@ -149,7 +166,7 @@ Key ideas:
 | [`geometry.py`](lidar_sim/geometry.py) | 2D/3D rotations (ZYX Euler), ray–segment (D3c) and ray–triangle (Möller–Trumbore, D14c) intersection, point reflection |
 | [`materials.py`](lidar_sim/materials.py) | `Material` (matte / mirror / glass) and per-surface property arrays |
 | [`world.py`](lidar_sim/world.py) | 2D `World`: segments, boxes, moving targets (`MovingBox`, `ping_pong`), the "naive" variant, the backend factory |
-| [`scenes.py`](lidar_sim/scenes.py) | 2D rooms: `default_room` (Ammar), `variant_b` (partner), `glass_corridor` (E11), and test scenes (`single_wall`, `glass_test`) |
+| [`scenes.py`](lidar_sim/scenes.py) | 2D rooms: `default_room` (Ammar), `variant_b` (Gal), `glass_corridor` (E11), and test scenes (`single_wall`, `glass_test`) |
 | [`scenes3d.py`](lidar_sim/scenes3d.py) | 3D scenes: `extrude()` a 2D room into walls + floor + ceiling, add a low box and a table |
 | [`backends/base.py`](lidar_sim/backends/base.py) | `Hits` result type and the `SceneBackend` interface |
 | [`backends/segments2d.py`](lidar_sim/backends/segments2d.py) | vectorised numpy 2D first-hit backend |
@@ -170,7 +187,7 @@ Key ideas:
 ### `experiments/`: report results (each exposes `run()` plus a command line)
 | File | Purpose |
 |---|---|
-| [`common.py`](experiments/common.py) | shared CLI flags (`--person`, `--scene`, `--seed`, `--out`, `--fast`, `--no-anim`), per-scene presets, table writing |
+| [`common.py`](experiments/common.py) | loads person configs (`load_person`, `scene_of`), asks "who are you?" if needed, shared CLI flags (`--person`, `--seed`, `--out`, `--fast`, `--no-anim`), table writing |
 | [`run_all.py`](experiments/run_all.py) | regenerates **everything** for one person (figures, tables, videos, demo board) |
 | [`params_table.py`](experiments/params_table.py) | writes `params_table.md` (all parameters + scene surfaces) |
 | [`e1_sensor_position.py`](experiments/e1_sensor_position.py) | E1: range vs position, closed form |
@@ -209,22 +226,23 @@ Key ideas:
 | [`tests/test_localization.py`](tests/test_localization.py) | filter convergence, resampling, naive vs physics, mixture bound |
 | [`tests/test_backends.py`](tests/test_backends.py) | Embree vs Möller–Trumbore, 2D-slice identity, 1/cos ε, floor ring, blind zone, 3D ghosts |
 | [`tests/test_phase.py`](tests/test_phase.py) | ambiguity ranges, unwrapping, mixed pixels |
-| [`tests/test_demo.py`](tests/test_demo.py) | slider app (headless) and room tour |
-| [`tests/test_experiments.py`](tests/test_experiments.py) | every experiment runs (fast mode, both scenes); E11 ordering |
+| [`tests/test_demo.py`](tests/test_demo.py) | slider app (headless) and room tour, for both people |
+| [`tests/test_people.py`](tests/test_people.py) | both person configs exist, have the same structure, and differ |
+| [`tests/test_experiments.py`](tests/test_experiments.py) | every experiment runs (fast mode, both people); E11 ordering |
 | [`tests/test_smoke.py`](tests/test_smoke.py) | every module imports; MP4 export and Embree work |
-| `figures/ammar/`, `figures/partner/` | generated outputs. Naming: `<exp>_<name>.png` figures, `<exp>_<table>.csv/.md` tables, `params_table.md`, `index.html` (demo board). Videos (`*.gif`, `*.mp4`) are regenerated by `run_all` and not committed. |
+| `figures/ammar/`, `figures/gal/` | generated outputs. Naming: `<exp>_<name>.png` figures, `<exp>_<table>.csv/.md` tables, `params_table.md`, `index.html` (demo board). Videos (`*.gif`, `*.mp4`) are regenerated by `run_all` and not committed. |
 
 ---
 
 ## Development
 
 ```bash
-uv run pytest            # 136 tests, ~20 s
+uv run pytest            # 140 tests, ~20 s
 uvx ruff check .         # lint (config in pyproject.toml)
 uv run python -m experiments.run_all --person ammar --fast --no-anim   # quick full pass
 ```
 
 To add an experiment:
-1. Write `experiments/eN_name.py` with `run(scene, seed, fast) -> {"figs", "tables", "data"}` and a `main()` that uses `common.parser/resolve/finish`.
-2. Add presets for both scenes in `common.PRESETS`.
+1. Write `experiments/eN_name.py` with `run(person, seed, fast) -> {"figs", "tables", "data"}` (read settings from `load_person(person)["eN"]`) and a `main()` that uses `common.parser/resolve/finish`.
+2. Add an `[eN]` table to **both** `people/ammar.toml` and `people/gal.toml`, with different values.
 3. Register it in `run_all.EXPERIMENTS` and `tests/test_experiments.py`.

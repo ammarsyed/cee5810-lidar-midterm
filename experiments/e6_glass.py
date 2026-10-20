@@ -7,25 +7,27 @@ A glass pane in front of a matte wall is rotated from head-on to grazing inciden
 (c) Which surface is reported: glass only within a few degrees of head-on.
 (d) In the room: points seen through the glass.
 
-Run: uv run python -m experiments.e6_glass [--person partner] [--fast]
+Run: uv run python -m experiments.e6_glass --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from experiments.common import finish, parser, preset, resolve
+from experiments.common import finish, load_person, parser, resolve, scene_of
 from lidar_sim import config, viz
 from lidar_sim.physics import fresnel_deg, pane_transmission
-from lidar_sim.scenes import get_scene, glass_test
+from lidar_sim.scenes import glass_test
 from lidar_sim.sensor import LidarParams, scan, trace_beams
 
 ONE = LidarParams(fov_deg=0.0, n_beams=1)
 
 
-def run(scene="default", seed=0, fast=False):
-    pr = preset(scene, "e6")
+def run(person="ammar", seed=None, fast=False):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    pr = cfg["e6"]
     gd, wd = pr["glass_dist"], pr["wall_dist"]
-    angles = np.arange(0, 86, 5 if fast else 1).astype(float)
+    angles = np.arange(float(pr["angle_offset_deg"]), 86, 5 if fast else 1).astype(float)
     p_glass, p_wall, ratio, rep_strong, rep_first = [], [], [], [], []
     p_bare = config.K_OVER_PTH * 0.7 / wd**2
     for a in angles:
@@ -76,7 +78,7 @@ def run(scene="default", seed=0, fast=False):
     ax3.set_title("E6c: the LiDAR sees the glass only within ~5° of head-on")
     ax3.legend(fontsize=7.5, loc="center right")
 
-    world = get_scene(scene, with_moving_box=False)
+    world = scene_of(cfg, with_moving_box=False)
     pose = np.array([pr["room_pose"][0], pr["room_pose"][1], np.radians(pr["room_pose"][2])])
     s = scan(world, pose, rng=np.random.default_rng(seed))
     fig4, ax4 = plt.subplots(figsize=(6.4, 5))
@@ -107,7 +109,7 @@ def run(scene="default", seed=0, fast=False):
 
 def main():
     args = resolve(parser(__doc__).parse_args())
-    finish(run(args.scene, args.seed, args.fast), args.out, "e6")
+    finish(run(args.person, args.seed, args.fast), args.out, "e6")
 
 
 if __name__ == "__main__":

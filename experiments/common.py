@@ -1,79 +1,88 @@
-"""Shared CLI arguments, per-scene presets and output helpers for the experiments.
+"""Shared helpers for the experiments: person configs, CLI arguments, output writing.
 
-Every experiment module exposes run(scene=..., seed=..., fast=...) -> dict with keys
+Every experiment module exposes run(person="ammar", seed=None, fast=False) -> dict with keys
   figs:   name -> matplotlib Figure
   tables: name -> (header list, rows list)
   data:   anything else (arrays) for the notebook
 and a main() that parses the CLI, calls run() and saves everything with finish().
 
-Use --person to get distinct media: ammar -> default scene, partner -> variant_b scene.
+Each teammate has a config file in people/<name>.toml (room, random seed, output folder, and every
+experiment's poses/parameters), so the same simulator produces distinct media for each person.
 """
 
 import argparse
 import csv
+import os
+import sys
+import tomllib
 from pathlib import Path
 
 import matplotlib
+import numpy as np
 
 from lidar_sim import viz
+from lidar_sim.scenes import get_scene
 
-PERSON = {
-    "ammar": dict(scene="default", out="figures/ammar"),
-    "partner": dict(scene="variant_b", out="figures/partner"),
-}
-
-# Poses are (x, y, heading_deg). Closed-form walls are (beam_deg, normal, offset d, label): n.q = d.
-PRESETS = {
-    "default": {
-        "e1": dict(start=(2.8, 3.0), end=(5.8, 3.0), heading_deg=0.0,
-                   beams=[(0.0, (1, 0), 8.0, "β=0°: right wall"), (90.0, (0, 1), 6.0, "β=+90°: top wall"),
-                          (-90.0, (0, 1), 0.0, "β=−90°: bottom wall (dark 3–5 m)")]),
-        "e2": dict(pose=(3.0, 3.0)),
-        "e3": dict(pose=(3.2, 2.0, 90.0), beam_deg=0.0),
-        "e4": dict(pose=(4.0, 1.75, -90.0)),
-        "e5": dict(pose=(6.9, 2.4, 150.0)),
-        "e6": dict(glass_dist=2.0, wall_dist=4.0, room_pose=(2.4, 1.5, -10.0)),
-        "e7": dict(pose=(3.0, 3.2, 0.0)),
-        "e12": dict(pose=(1.6, 2.8, 0.0), ghost_pose=(6.9, 2.4, 150.0)),
-        "e13": dict(pose=(4.6, 3.2, 14.0)),
-    },
-    "variant_b": {
-        "e1": dict(start=(2.6, 0.8), end=(2.6, 3.2), heading_deg=90.0,
-                   beams=[(0.0, (0, 1), 6.0, "β=0°: top wall"), (90.0, (1, 0), 0.0, "β=+90°: left wall")]),
-        "e2": dict(pose=(4.0, 3.5)),
-        "e3": dict(pose=(1.5, 3.0, 0.0), beam_deg=0.0),
-        "e4": dict(pose=(7.2, 3.5, 0.0)),
-        "e5": dict(pose=(0.9, 2.1, 60.0)),
-        "e6": dict(glass_dist=1.5, wall_dist=5.0, room_pose=(3.6, 1.6, 20.0)),
-        "e7": dict(pose=(4.5, 4.2, -150.0)),
-        "e12": dict(pose=(5.2, 3.0, 90.0), ghost_pose=(0.9, 2.1, 60.0)),
-        "e13": dict(pose=(3.0, 3.0, 200.0)),
-    },
-}
+PEOPLE_DIR = Path(__file__).resolve().parents[1] / "people"
 
 
-def preset(scene, exp):
-    return PRESETS.get(scene, PRESETS["default"])[exp]
+def people():
+    """Names of the available person configs (e.g. ["ammar", "gal"])."""
+    return sorted(p.stem for p in PEOPLE_DIR.glob("*.toml"))
+
+
+def load_person(name):
+    """Load people/<name>.toml as a dict (adds "key" = the file name)."""
+    key = str(name).strip().lower()
+    path = PEOPLE_DIR / f"{key}.toml"
+    if not path.exists():
+        raise SystemExit(f"Unknown person {name!r}. Choose one of: {', '.join(people())} (configs in {PEOPLE_DIR}).")
+    with open(path, "rb") as f:
+        cfg = tomllib.load(f)
+    cfg["key"] = key
+    return cfg
+
+
+def scene_of(cfg, **overrides):
+    """Build the person's room, with their scene_options plus any per-call overrides."""
+    return get_scene(cfg["scene"], **{**cfg.get("scene_options", {}), **overrides})
+
+
+def pose_rad(p):
+    """[x, y, heading_deg] -> np.array([x, y, heading_rad])."""
+    return np.array([p[0], p[1], np.radians(p[2])], dtype=float)
+
+
+def ask_person():
+    """Return the person from LIDAR_PERSON, or ask on an interactive terminal."""
+    env = os.environ.get("LIDAR_PERSON")
+    if env:
+        return env
+    if sys.stdin.isatty():
+        names = people()
+        answer = input(f"Who are you? ({' / '.join(n.capitalize() for n in names)}): ").strip().lower()
+        if answer in names:
+            return answer
+    raise SystemExit(f"Pass --person ({' | '.join(people())}) or set LIDAR_PERSON.")
 
 
 def parser(description):
-    ap = argparse.ArgumentParser(description=description)
-    ap.add_argument("--person", choices=list(PERSON), default="ammar",
-                    help="picks the default scene and output folder (distinct media per teammate)")
-    ap.add_argument("--scene", default=None, help="scene name (default: from --person)")
-    ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--out", default=None, help="output folder (default: from --person)")
+    ap = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--person", default=None,
+                    help=f"whose config to use: {' | '.join(people())} (default: $LIDAR_PERSON, else asks)")
+    ap.add_argument("--seed", type=int, default=None, help="override the person's base seed")
+    ap.add_argument("--out", default=None, help="output folder (default: from the person's config)")
     ap.add_argument("--fast", action="store_true", help="fewer samples / frames (for quick checks)")
     ap.add_argument("--no-anim", action="store_true", help="skip GIF/MP4 rendering")
     return ap
 
 
 def resolve(args):
-    """Fill scene/out defaults from --person and switch to the non-interactive backend."""
+    """Fill person/out defaults, attach the config as args.cfg, switch to the non-interactive backend."""
     matplotlib.use("Agg")
-    d = PERSON[args.person]
-    args.scene = args.scene or d["scene"]
-    args.out = args.out or d["out"]
+    args.person = (args.person or ask_person()).lower()
+    args.cfg = load_person(args.person)
+    args.out = args.out or args.cfg["out"]
     return args
 
 

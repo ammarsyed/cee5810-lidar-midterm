@@ -6,18 +6,17 @@
 (c) The theorem check: |reported point - Ref(true hit)| is ~1e-15 m noise-free, and with noise the
     error along the beam is N(0, sigma_R^2).
 
-Run: uv run python -m experiments.e5_mirror [--person partner] [--fast]
+Run: uv run python -m experiments.e5_mirror --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import norm
 
-from experiments.common import finish, parser, preset, resolve
+from experiments.common import finish, load_person, parser, resolve, scene_of
 from lidar_sim import viz
 from lidar_sim.geometry import reflect_point, segment_normal
 from lidar_sim.materials import MIRROR
-from lidar_sim.scenes import get_scene
 from lidar_sim.sensor import LidarParams, scan
 
 
@@ -25,9 +24,11 @@ def _mirror(world):
     return [s for s in world.segments if s.material.code == MIRROR][0]
 
 
-def run(scene="default", seed=0, fast=False):
-    pr = preset(scene, "e5")
-    world = get_scene(scene, with_moving_box=False)
+def run(person="ammar", seed=None, fast=False):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    pr = cfg["e5"]
+    world = scene_of(cfg, with_moving_box=False)
     params = LidarParams()
     rng = np.random.default_rng(seed)
     pose = np.array([pr["pose"][0], pr["pose"][1], np.radians(pr["pose"][2])])
@@ -56,9 +57,8 @@ def run(scene="default", seed=0, fast=False):
     # (b) mirror-angle sweep
     angles = np.arange(0, 180, 15 if fast else 5)
     ghosts, head_on = [], []
-    builder = get_scene.__globals__["SCENES"][scene]
     for a in angles:
-        w = builder(with_moving_box=False, mirror_angle_deg=float(a))
+        w = scene_of(cfg, with_moving_box=False, mirror_angle_deg=float(a))
         sc = scan(w, pose, params, noise=False)
         mid = w.surface_ids("mirror")
         ghosts.append(int((sc.detected & sc.is_ghost).sum()))
@@ -107,7 +107,7 @@ def run(scene="default", seed=0, fast=False):
 
 def main():
     args = resolve(parser(__doc__).parse_args())
-    finish(run(args.scene, args.seed, args.fast), args.out, "e5")
+    finish(run(args.person, args.seed, args.fast), args.out, "e5")
 
 
 if __name__ == "__main__":

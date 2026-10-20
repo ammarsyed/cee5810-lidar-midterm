@@ -4,25 +4,26 @@ The sensor rotates in place. The FOV membership test x_T in S(x) (range window f
 own max range, 240 deg angular window, line of sight) predicts when the box should be seen; the
 simulation reports whether any beam actually returns from the box.
 
-Run: uv run python -m experiments.e2_sensor_heading [--person partner] [--fast]
+Run: uv run python -m experiments.e2_sensor_heading --person ammar|gal [--fast]
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from experiments.common import finish, parser, preset, resolve
+from experiments.common import finish, load_person, parser, resolve, scene_of
 from lidar_sim import viz
 from lidar_sim.physics import max_range
-from lidar_sim.scenes import get_scene
 from lidar_sim.sensor import LidarParams, in_fov, scan, visibility_polygon
 
 
-def run(scene="default", seed=0, fast=False):
-    pr = preset(scene, "e2")
-    world = get_scene(scene).at_time(0.0)  # box frozen at its t = 0 position
+def run(person="ammar", seed=None, fast=False):
+    cfg = load_person(person)
+    seed = cfg["seed"] if seed is None else seed
+    pr = cfg["e2"]
+    world = scene_of(cfg).at_time(0.0)  # box frozen at its t = 0 position
     params = LidarParams()
     box_ids = world.surface_ids("box")
-    box = get_scene(scene).movers[0]
+    box = scene_of(cfg).movers[0]
     cx, cy, _ = box.trajectory(0.0)
     r_box = float(max_range(box.material.rho))  # the box's own max range (target features!)
     xy = np.array(pr["pose"], float)
@@ -78,7 +79,7 @@ def run(scene="default", seed=0, fast=False):
 
 def main():
     args = resolve(parser(__doc__).parse_args())
-    finish(run(args.scene, args.seed, args.fast), args.out, "e2")
+    finish(run(args.person, args.seed, args.fast), args.out, "e2")
 
 
 if __name__ == "__main__":
