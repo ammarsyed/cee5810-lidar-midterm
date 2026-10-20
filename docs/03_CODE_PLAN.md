@@ -2,6 +2,8 @@
 
 > **Status (2026-10-19): all stages 0–11 are implemented, tested (114 tests) and committed.** Per-stage details and results are in `PROGRESS.md`; calls made along the way are in `DECISIONS_NEEDED.md`. The stage prompts below still work for re-doing or extending a stage.
 
+> **Note (2026-10-20 cleanup):** this is the original build plan. Files were since reorganised (`plan/` → `docs/`, presentation tools → `demo/`). The README's **Repository map** is the authoritative description of the current files.
+>
 > **How to use this doc:** each **Stage** below is sized to fit in roughly one Claude Code session. Start a session, paste the stage's **Prompt**, and let it run. Check the **Done when** list, then commit. Every stage appends a short entry to `PROGRESS.md`, so the next session (or a fresh context after hitting usage limits) knows where things stand.
 >
 > Read `01_PROJECT_PLAN.md` for the *why* and `02_DERIVATIONS.md` for the equations (referred to as D1–D14). Experiments are E1–E13.
@@ -63,7 +65,7 @@
 
 ```
 Midterm/
-├── plan/                     ← these docs
+├── docs/                     ← these docs
 ├── PROGRESS.md               ← running log, one entry per stage/session
 ├── pyproject.toml
 ├── lidar_sim/
@@ -86,7 +88,6 @@ Midterm/
 │   │   ├── motion.py         ← unicycle motion model, vectorised over particles (D13a)
 │   │   ├── likelihood.py     ← naive vs physics-aware expected scans; robust log-likelihood (D13d)
 │   │   ├── particle_filter.py← predict / update / low-variance resample / estimate (D13c)
-│   │   └── icp.py            ← optional point-to-point ICP baseline (D13e)
 │   ├── viz.py                ← 2D drawing, polar plots, animation helpers, figure style
 │   ├── viz3d.py              ← range image, 3D scatter, bird's-eye view, rotating-camera animation
 │   └── config.py             ← default parameter values (from 01_PROJECT_PLAN §4)
@@ -241,12 +242,12 @@ uv project, deps, skeleton, README, PROGRESS, smoke test, git. See PROGRESS.md.
 - `world.py`: `Segment`, `World` (+ `.backend()`), `Box` → 4 segments
 - `scenes.py`: `default_room()` (8×6 m, matte walls, one dark and one bright section; no mirror/glass yet)
 - `viz.py`: figure style, `draw_world(ax, world)`, `draw_rays(ax, origin, hits)`
-- Script `experiments/smoke.py`: 241 beams from the room centre, saves `figures/smoke.png`
+- Script `experiments/smoke.py` (removed in the cleanup): 241 beams from the room centre, saves `figures/smoke.png`
 - Tests: intersection hit / miss / parallel / behind-ray; closed-form wall range `R = (d − n̂·p)/(n̂·u)` matches `cast()`; batched result == one-ray-at-a-time result
 
 **Done when:** `figures/smoke.png` shows the room with a fan of rays ending on the walls; tests pass.
 
-> **Prompt:** *"Read plan/03_CODE_PLAN.md and PROGRESS.md. Do Stage 1 only (geometry, the backend interface + vectorised Segments2D backend, materials, world, default_room with matte walls, viz basics, smoke script, tests against the closed-form wall range from plan/02_DERIVATIONS.md D3). Show me the smoke figure, commit, update PROGRESS.md."*
+> **Prompt:** *"Read docs/03_CODE_PLAN.md and PROGRESS.md. Do Stage 1 only (geometry, the backend interface + vectorised Segments2D backend, materials, world, default_room with matte walls, viz basics, smoke script, tests against the closed-form wall range from docs/02_DERIVATIONS.md D3). Show me the smoke figure, commit, update PROGRESS.md."*
 
 ### Stage 2 — Sensor pose, frames, FOV & LOS (M)
 **Goal:** a real sensor object with a pose, a FOV wedge and a visibility polygon.
@@ -257,7 +258,7 @@ uv project, deps, skeleton, README, PROGRESS, smoke test, git. See PROGRESS.md.
 
 **Done when:** a figure showing the sensor, its 240° wedge, the shaded visible region, and rays; a polar range plot.
 
-> **Prompt:** *"Read plan/03_CODE_PLAN.md and PROGRESS.md. Do Stage 2 only: sensor pose, body↔world frames, FOV wedge, LOS visibility polygon, noise-free scan for matte walls, polar plot, tests. Save a demo figure, commit, update PROGRESS.md."*
+> **Prompt:** *"Read docs/03_CODE_PLAN.md and PROGRESS.md. Do Stage 2 only: sensor pose, body↔world frames, FOV wedge, LOS visibility polygon, noise-free scan for matte walls, polar plot, tests. Save a demo figure, commit, update PROGRESS.md."*
 
 ### Stage 3 — Power, noise, dropouts, fog (M)
 **Goal:** the probabilistic part.
@@ -274,7 +275,7 @@ uv project, deps, skeleton, README, PROGRESS, smoke test, git. See PROGRESS.md.
 
 **Done when:** tests pass; a quick figure of P_D vs. range for a few ρ and α values.
 
-> **Prompt:** *"Read plan/03_CODE_PLAN.md, plan/02_DERIVATIONS.md (D1, D5, D6, D10) and PROGRESS.md. Do Stage 3 only: received power, calibration, fog, detection probability, range noise, seeded RNG, plus the tests listed. Show me a P_D-vs-range figure, commit, update PROGRESS.md."*
+> **Prompt:** *"Read docs/03_CODE_PLAN.md, docs/02_DERIVATIONS.md (D1, D5, D6, D10) and PROGRESS.md. Do Stage 3 only: received power, calibration, fog, detection probability, range noise, seeded RNG, plus the tests listed. Show me a P_D-vs-range figure, commit, update PROGRESS.md."*
 
 ### Stage 4 — Batched tracer: mirror + glass (L, split into 4a/4b)
 **Goal:** multi-bounce tracing with ghosts and see-through glass, backend-agnostic and batched (§5).
@@ -294,7 +295,7 @@ uv project, deps, skeleton, README, PROGRESS, smoke test, git. See PROGRESS.md.
 
 **Done when:** a figure where you can clearly see ghost points behind the mirror and the wall behind the glass being detected; all tests pass.
 
-> **Prompt (4a):** *"Read plan/03_CODE_PLAN.md (§5 physics & tracing rules) and plan/02_DERIVATIONS.md D8–D9, plus PROGRESS.md. Do Stage 4a: reflect, fresnel, the batched breadth-first backend-agnostic tracer with mirror support, return selection, ghost-theorem test. Commit, update PROGRESS.md."*
+> **Prompt (4a):** *"Read docs/03_CODE_PLAN.md (§5 physics & tracing rules) and docs/02_DERIVATIONS.md D8–D9, plus PROGRESS.md. Do Stage 4a: reflect, fresnel, the batched breadth-first backend-agnostic tracer with mirror support, return selection, ghost-theorem test. Commit, update PROGRESS.md."*
 > **Prompt (4b):** *"Continue with Stage 4b: glass (transmission + weak reflected branch), return policy switch, scene with mirror + glass, draw_scan, remaining tests including the multi-pose batch and speed tests, demo figure. Commit, update PROGRESS.md."*
 
 ### Stage 5 — Moving target + sensor paths + animation (M)
@@ -308,7 +309,7 @@ uv project, deps, skeleton, README, PROGRESS, smoke test, git. See PROGRESS.md.
 
 **Done when:** a short GIF of the LiDAR driving through the room while the box moves, with ghosts and glass behaviour visible.
 
-> **Prompt:** *"Read plan/03_CODE_PLAN.md and PROGRESS.md. Do Stage 5: moving box, time-varying world, sensor paths and heading modes (with unicycle-control export), two-panel animation export (GIF and MP4). Produce one demo GIF + MP4, commit, update PROGRESS.md."*
+> **Prompt:** *"Read docs/03_CODE_PLAN.md and PROGRESS.md. Do Stage 5: moving box, time-varying world, sensor paths and heading modes (with unicycle-control export), two-panel animation export (GIF and MP4). Produce one demo GIF + MP4, commit, update PROGRESS.md."*
 
 ### Stage 6 — Experiment scripts E1–E8 + CPT (L, split by person)
 **Goal:** the core report media. Each script takes `--scene`, `--seed`, `--out figures/<person>/`, so each teammate makes **distinct** figures.
@@ -333,7 +334,7 @@ The notebook calls `run()` directly, so there's one source of truth for every fi
 
 Also: a `figures/<person>/params_table.md` dump of all parameters used, for the report's Procedure section.
 
-> **Prompt:** *"Read plan/03_CODE_PLAN.md §6 Stage 6 and PROGRESS.md. Implement experiments E1, E3, E5, E7 (+ the BN CPT script) with run()/main(), the shared CLI, theory overlays and consistent figure style, writing to figures/ammar/. Commit, update PROGRESS.md."* (Partner, or a later session: E2, E4, E6, E8 to `figures/partner/` with a different scene variant.)
+> **Prompt:** *"Read docs/03_CODE_PLAN.md §6 Stage 6 and PROGRESS.md. Implement experiments E1, E3, E5, E7 (+ the BN CPT script) with run()/main(), the shared CLI, theory overlays and consistent figure style, writing to figures/ammar/. Commit, update PROGRESS.md."* (Partner, or a later session: E2, E4, E6, E8 to `figures/partner/` with a different scene variant.)
 
 ### Stage 7 — Localization: particle filter, naive vs physics-aware (L, split into 7a/7b) — Upgrade U1
 **Goal:** the sensor model gets *used*: three particle filters estimate the robot's pose from scans, and we show where the naive model fails.
@@ -368,11 +369,11 @@ Also: a `figures/<person>/params_table.md` dump of all parameters used, for the 
   - position and heading error vs. time (mean ± std band)
   - N_eff vs. time
   - table (CSV + markdown): RMSE, final error, % runs diverged (final error > 0.5 m)
-- Optional: `localization/icp.py` (cKDTree + Kabsch SVD) and an ICP-odometry drift plot near the mirror (D13e)
+- Optional, not built (DECISIONS #8): `localization/icp.py` (cKDTree + Kabsch SVD) and an ICP-odometry drift plot near the mirror (D13e)
 
 **Done when:** tests pass; E11 figures and table exist in `figures/ammar/`. P clearly beats N1, and N2 sits in between (or, if not, you understand and write up why).
 
-> **Prompt (7a):** *"Read plan/03_CODE_PLAN.md Stage 7, plan/02_DERIVATIONS.md D13 and PROGRESS.md. Do Stage 7a: unicycle motion model, naive vs physics-aware likelihood models with the robust mixture and tempering, the particle filter with low-variance resampling, and the listed tests. Commit, update PROGRESS.md."*
+> **Prompt (7a):** *"Read docs/03_CODE_PLAN.md Stage 7, docs/02_DERIVATIONS.md D13 and PROGRESS.md. Do Stage 7a: unicycle motion model, naive vs physics-aware likelihood models with the robust mixture and tempering, the particle filter with low-variance resampling, and the listed tests. Commit, update PROGRESS.md."*
 > **Prompt (7b):** *"Continue with Stage 7b: experiment E11 (three filters N1/N2/P, 20 seeds, error/N_eff plots, results table, particle-cloud animation) with run()/main(). Optional ICP baseline only if time allows. Commit, update PROGRESS.md."*
 
 ### Stage 8 — 3D LiDAR mode (L, split into 8a/8b) — Upgrade U2
@@ -411,7 +412,7 @@ Also: a `figures/<person>/params_table.md` dump of all parameters used, for the 
 
 **Done when:** tests pass; E12 and E13 figures (plus one rotating 3D point-cloud MP4) exist.
 
-> **Prompt (8a):** *"Read plan/03_CODE_PLAN.md Stage 8, plan/02_DERIVATIONS.md D14 and PROGRESS.md. Do Stage 8a: add trimesh + embreex usage via the Mesh3D backend, scenes3d (extrude + default_room_3d with low box and table), rot3d and sensor3d, and the listed tests (Möller–Trumbore cross-check, 2D-slice identity, floor ring, blind zone, 3D ghost theorem, speed). Commit, update PROGRESS.md."*
+> **Prompt (8a):** *"Read docs/03_CODE_PLAN.md Stage 8, docs/02_DERIVATIONS.md D14 and PROGRESS.md. Do Stage 8a: add trimesh + embreex usage via the Mesh3D backend, scenes3d (extrude + default_room_3d with low box and table), rot3d and sensor3d, and the listed tests (Möller–Trumbore cross-check, 2D-slice identity, floor ring, blind zone, 3D ghost theorem, speed). Commit, update PROGRESS.md."*
 > **Prompt (8b):** *"Continue with Stage 8b: viz3d (range image, 3D scatter, bird's-eye, rotating animation) and experiments E12 and E13 with run()/main() and theory overlays, writing to figures/partner/ (E12) and figures/ammar/ (E13). Commit, update PROGRESS.md."*
 
 ### Stage 9a — Interactive slider demo (M)
@@ -430,14 +431,14 @@ Also: a `figures/<person>/params_table.md` dump of all parameters used, for the 
 - Optional: a **2D/3D toggle** that swaps the right panel for the 3D range image.
 
 **Code:**
-- `experiments/interactive.py`: `build(world=None, params=None) -> (fig, controls)`, `launch()`, `main()`.
+- `demo/interactive.py`: `build(world=None, params=None) -> (fig, controls)`, `launch()`, `main()`.
 - Every slider change re-runs `scan()` and updates the artists in place (fast enough; no threading).
 - `--record out.mp4`: plays a scripted sweep of the sliders (e.g. drive the sensor, then ramp the fog, then rotate the mirror) and saves it with `FuncAnimation`. You get a **reproducible demo video** without manual screen recording. Manual capture on macOS is Cmd+Shift+5.
 - Tests: `build()` works under the Agg backend, and setting a slider value changes the scan (e.g. raising `α` lowers the detection count).
 
-**Done when:** `uv run python -m experiments.interactive` opens a working window, and `--record figures/ammar/demo.mp4` writes a video.
+**Done when:** `uv run python -m demo.interactive` opens a working window, and `--record figures/ammar/demo.mp4` writes a video.
 
-> **Prompt:** *"Read plan/03_CODE_PLAN.md (Stage 9a) and PROGRESS.md. Build the interactive slider demo in experiments/interactive.py with the listed controls, the --record scripted-sweep MP4 option, and the Agg-backend tests. Commit, update PROGRESS.md."*
+> **Prompt:** *"Read docs/03_CODE_PLAN.md (Stage 9a) and PROGRESS.md. Build the interactive slider demo in demo/interactive.py with the listed controls, the --record scripted-sweep MP4 option, and the Agg-backend tests. Commit, update PROGRESS.md."*
 
 ### Stage 9b — Walkthrough notebook (M)
 **Goal:** a notebook that tells the whole story with figures inline. Your partner can explore in it, and it can be exported as the code appendix (like HW 2).
@@ -467,7 +468,7 @@ Open the HTML in a browser and print to PDF.
 
 **Done when:** "Restart & Run All" works top to bottom, the nbconvert command above succeeds, and the figures match the scripts' outputs for the same seed.
 
-> **Prompt:** *"Read plan/03_CODE_PLAN.md (Stage 9b) and PROGRESS.md. Create notebooks/lidar_walkthrough.ipynb following the section list, as a thin viewer over the experiments' run() functions and interactive.launch(). Execute it with nbconvert to HTML to verify. Commit (with outputs cleared or kept, your call), update PROGRESS.md."*
+> **Prompt:** *"Read docs/03_CODE_PLAN.md (Stage 9b) and PROGRESS.md. Create notebooks/lidar_walkthrough.ipynb following the section list, as a thin viewer over the experiments' run() functions and interactive.launch(). Execute it with nbconvert to HTML to verify. Commit (with outputs cleared or kept, your call), update PROGRESS.md."*
 
 ### Stage 10 — Stretch (optional, M each)
 - **E9 CW phase ranging (D2):** `sensor.phase_range(true_R, f)` with wrap-around; two-frequency unwrap; plot measured vs. true range showing the saw-tooth at 3.22 m and the fix.
@@ -485,7 +486,7 @@ Open the HTML in a browser and print to PDF.
 ## 7. Splitting work across sessions & usage limits
 
 - **One stage (or half-stage) per session.** Stages 4, 6, 7 and 8 are the big ones, so split them as shown.
-- **Always start a session with:** "Read plan/03_CODE_PLAN.md and PROGRESS.md, then do Stage N." That's enough context. You don't need to re-explain the project.
+- **Always start a session with:** "Read docs/03_CODE_PLAN.md and PROGRESS.md, then do Stage N." That's enough context. You don't need to re-explain the project.
 - **PROGRESS.md entry format:** date, stage, what was done, files touched, test status, known issues, next step.
 - **Commit after each stage**, so a bad session is easy to roll back.
 - **Priority if time gets tight** (see also the cut order in `01_PROJECT_PLAN.md` §9):

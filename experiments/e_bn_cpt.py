@@ -72,7 +72,7 @@ def run(scene="default", seed=0, fast=False):
     fig.suptitle(f"BN CPT estimated from {n} simulated shots per cell (incidence 0–60°)", fontsize=11)
 
     header = ["material", "fog", "range", "P(D=T)", "P(S=target)", "shots"]
-    return {"figs": {"cpt_heatmap": fig}, "tables": {"cpt": (header, rows)},
+    return {"figs": {"heatmap": fig}, "tables": {"table": (header, rows)},
             "data": {"p_det": p_det, "p_tgt": p_tgt}}
 
 

@@ -24,7 +24,7 @@ def run(scene="default", seed=0, fast=False):
     single1, single2 = phase_range(phi1, F1), phase_range(phi2, F2)
     both = two_frequency_range(phi1, phi2)
     R_beat = config.C / (2 * abs(F1 - F2))
-    ok = R < R_beat
+    ok = R < R_beat  # noqa: SIM300 (R is the range array, not a constant)
 
     fig, (a1, a2) = plt.subplots(2, 1, figsize=(7.4, 5.6), sharex=True, gridspec_kw={"height_ratios": [2, 1]})
     a1.plot(R, R, color=viz.MUTED, lw=1.0, ls="--", label="true range")

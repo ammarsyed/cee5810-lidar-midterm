@@ -33,7 +33,7 @@ def default_room(
     box_speed=0.5,
     fog_alpha=0.0,
 ):
-    """8 m x 6 m room (Ammar's scene). See plan/01_PROJECT_PLAN.md section 5.
+    """8 m x 6 m room (Ammar's scene). See docs/01_PROJECT_PLAN.md section 5.
 
     - matte walls (rho 0.7) with a dark section (rho 0.1, bottom) and a bright one (rho 0.9, top)
     - mirror on the right at 45 deg, so reflections hit the nearby top wall and ghosts appear once

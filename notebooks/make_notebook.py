@@ -16,17 +16,16 @@ cells = [
 CEE 5810 Robot Perception, midterm project. A 2D (and 16-ring 3D) LiDAR in a room with matte walls, a **mirror**,
 a **glass pane**, a **moving box** and **fog**. Then a particle filter uses the sensor model to localize a robot.
 
-This notebook is only a **viewer**. Every figure comes from the `lidar_sim` package or an experiment's `run()`
-function, the same code the scripts in `experiments/` use. Set `SCENE = "variant_b"` for the partner's scene
+This notebook is only a **viewer**. Every figure comes from the `lidar_sim` package, an experiment's `run()` function or a `demo/` module,
+the same code the command-line scripts use. Set `SCENE = "variant_b"` for the partner's scene
 (distinct media), and `FAST = True` for a quick pass.
 
-Maths: `plan/02_DERIVATIONS.md` (D1–D14). Experiments: E1–E13."""),
+Maths: `docs/02_DERIVATIONS.md` (D1–D14). Experiments: E1–E13."""),
     code("""import os, sys
 from pathlib import Path
 ROOT = Path.cwd() if (Path.cwd() / "lidar_sim").exists() else Path.cwd().parent
 os.chdir(ROOT); sys.path.insert(0, str(ROOT))
 %matplotlib inline
-import numpy as np
 import matplotlib.pyplot as plt
 from IPython.display import Markdown, display
 from experiments.common import markdown_table
@@ -55,9 +54,8 @@ display(Markdown(params_table.run(SCENE)["text"]))"""),
 - **Aqua circles** are where that light really came from (D8).
 - **Gray rays** are beams with no return: too dark, too far, or a grazing mirror/glass hit.
 - The shaded region is the FOV with line of sight (D4); glass is transparent."""),
-    code("""from experiments import demo_scan
-pose = {"default": (4.6, 3.2, 0.25), "variant_b": (0.9, 2.1, 1.05)}[SCENE]
-show("scan", demo_scan.run(seed=SEED, pose=pose))"""),
+    code("""from demo import tour
+show("scan", tour.snapshot(SCENE, SEED))"""),
     md("""## 3. Sensor state → measurements (Fig. 1: x → Z)
 
 **E1:** move the sensor. The range to a flat wall follows the closed form R = (d − n·p)/(n·u) (D3).
@@ -119,11 +117,11 @@ show("E13", e13_2d3d_consistency.run(SCENE, SEED, FAST))"""),
     md("""## 11. Play with it
 
 Set `RUN_INTERACTIVE = True` and run the cell. It switches to the widget backend (ipympl) and opens the same slider demo as
-`uv run python -m experiments.interactive`. It's left off so the exported HTML stays static."""),
+`uv run python -m demo.interactive`. It's left off so the exported HTML stays static."""),
     code("""RUN_INTERACTIVE = False
 if RUN_INTERACTIVE:
     %matplotlib widget
-    from experiments.interactive import launch
+    from demo.interactive import launch
     fig, controls = launch(SCENE)"""),
     md("""## 12. Summary: theory vs simulation"""),
     code("""def find(name, table, label, col=1):

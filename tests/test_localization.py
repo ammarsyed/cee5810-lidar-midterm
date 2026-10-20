@@ -10,7 +10,7 @@ from lidar_sim.localization.particle_filter import (ParticleFilter, circular_mea
                                                     low_variance_resample)
 from lidar_sim.paths import pure_pursuit
 from lidar_sim.scenes import default_room
-from lidar_sim.sensor import LidarParams, expected_scan, scan
+from lidar_sim.sensor import expected_scan, scan
 
 BEAMS = np.arange(0, 241, 8)
 

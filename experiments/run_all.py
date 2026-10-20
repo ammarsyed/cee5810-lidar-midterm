@@ -1,4 +1,4 @@
-"""Regenerate every figure, table and video for one teammate (Stage 11).
+"""Regenerate every figure, table and video for one teammate, plus the demo board page.
 
     uv run python -m experiments.run_all --person ammar      # default scene  -> figures/ammar/
     uv run python -m experiments.run_all --person partner    # variant_b scene -> figures/partner/
@@ -67,16 +67,16 @@ def main():
         res = mod.run(scene, args.seed, args.fast, **kw)
         finish(res, out, prefix)
         print(f"  {mod_name}: {time.perf_counter() - t0:.1f} s")
-    if not args.no_anim and not args.only:
-        from experiments.demo_animation import render
-        from experiments.interactive import record
+    from demo import tour
+    from demo.board import build as build_board
+    from demo.interactive import record
 
-        print(record(f"{out}/demo.mp4", scene, n=60 if args.fast else 120))
-        if scene == "default":
-            for p in render([f"{out}/drive.gif"]):
+    if not args.only:
+        finish(tour.snapshot(scene, args.seed), out, "tour")
+        if not args.no_anim:
+            print(record(f"{out}/demo.mp4", scene, n=60 if args.fast else 120))
+            for p in tour.animate([f"{out}/tour.gif"], scene, args.seed):
                 print(p)
-    from experiments.demo_board import build as build_board
-
     print(build_board(args.person))
     if args.notebook:
         subprocess.run([sys.executable, "-m", "jupyter", "nbconvert", "--to", "html", "--execute",

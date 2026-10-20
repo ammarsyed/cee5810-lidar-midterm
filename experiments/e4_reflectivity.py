@@ -46,7 +46,7 @@ def run(scene="default", seed=0, fast=False):
         ax.scatter(ranges, rate, s=14, color=col, zorder=4, linewidths=0)
         R = float(max_range(rho))
         ax.axvline(R, color=col, lw=0.8, ls=":")
-        sim_R = brentq(lambda r: _power(r, rho) - 1.0, 0.05, 30)
+        sim_R = brentq(lambda r, rho=rho: _power(r, rho) - 1.0, 0.05, 30)
         rows.append([rho, R, sim_R, abs(R - sim_R)])
     ax.set_xlabel("range to wall [m]")
     ax.set_ylabel("detection probability")
@@ -81,7 +81,7 @@ def run(scene="default", seed=0, fast=False):
     # (c) orientation: max range vs incidence angle
     angles = np.linspace(0, 80, 9 if fast else 17)
     rho = 0.5
-    sim = [brentq(lambda r: _power(r, rho, a) - 1.0, 0.05, 30) for a in angles]
+    sim = [brentq(lambda r, a=a: _power(r, rho, a) - 1.0, 0.05, 30) for a in angles]
     fig3, ax3 = plt.subplots(figsize=(6.4, 3.8))
     fine = np.linspace(0, 85, 200)
     ax3.plot(fine, max_range(rho, np.radians(fine)), color=viz.BLUE, lw=1.6, label="R₀·√cos θ (D5)")

@@ -1,8 +1,8 @@
-"""Interactive slider demo (Stage 9a): drag the sensor, fog, mirror and box; watch the scan update.
+"""Interactive slider demo: drag the sensor, fog, mirror and box; watch the scan update.
 
-Desktop window:   uv run python -m experiments.interactive [--scene variant_b]
-Record a video:   uv run python -m experiments.interactive --record figures/ammar/demo.mp4
-In the notebook:  %matplotlib widget  then  from experiments.interactive import launch; launch()
+Desktop window:   uv run python -m demo.interactive [--scene variant_b]
+Record a video:   uv run python -m demo.interactive --record figures/ammar/demo.mp4
+In the notebook:  %matplotlib widget  then  from demo.interactive import launch; launch()
 """
 
 import argparse

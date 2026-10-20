@@ -43,7 +43,7 @@ def test_fog_lambert_w_matches_root_find_and_table():
             R = float(max_range(rho, alpha=a))
             assert round(R, 2) == pytest.approx(expect, abs=0.005)
             if a > 0:
-                root = brentq(lambda r: diffuse_power(r, rho, 1.0, alpha=a) - 1.0, 0.01, 50)
+                root = brentq(lambda r, rho=rho, a=a: diffuse_power(r, rho, 1.0, alpha=a) - 1.0, 0.01, 50)
                 assert np.isclose(R, root, rtol=1e-9)
 
 

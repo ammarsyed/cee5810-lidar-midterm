@@ -478,7 +478,7 @@ Careful: ghost points do **not** move "the wrong way" for static walls. `g = Ref
 
 Heiden et al. compare against ICP, GICP and NDT. (Not implemented in our code: DECISIONS #8.)
 
-**Used in:** E11; code `localization.motion`, `localization.likelihood` (naive vs. physics), `localization.particle_filter`, optional `localization.icp`.
+**Used in:** E11; code `localization.motion`, `localization.likelihood` (naive vs. physics), `localization.particle_filter` (ICP not implemented: DECISIONS #8).
 **Course tie-in:** Bayes' theorem and Markov processes (L4); Bayesian networks / dynamic BN (L4); unicycle kinematics (L2); probabilistic measurement model (L3); estimation (D11/CRLB).
 
 ---

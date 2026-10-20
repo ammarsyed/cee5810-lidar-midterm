@@ -1,4 +1,4 @@
-"""Default parameter values (plan/01_PROJECT_PLAN.md section 4).
+"""Default parameter values (docs/01_PROJECT_PLAN.md section 4).
 
 All powers in the code are normalised by the detection threshold, so a return is
 "above threshold" when its normalised power p = P_r / P_th >= 1.
@@ -22,7 +22,7 @@ SPEC_LOBE_DEG = 1.5  # theta_w
 # The lobe exp(-theta_inc^2 / (2 theta_w^2)) is written in incidence angle, but the mirror direction
 # leaves the surface 2 theta_inc away from the sensor, so in outgoing angle the lobe is 2 theta_w wide.
 # Normalising that Gaussian over solid angle (energy-conserving) and comparing with the Lambertian
-# 1/pi lobe gives K_s / K = 1 / (8 theta_w^2)  (~182 for 1.5 deg). See D5 and DECISIONS_NEEDED.md #2.
+# 1/pi lobe gives K_s / K = 1 / (8 theta_w^2)  (~182 for 1.5 deg). See D5 and DECISIONS.md #2.
 SPEC_GAIN = 1.0 / (8.0 * np.radians(SPEC_LOBE_DEG) ** 2)
 
 # --- Detection (D6) ---------------------------------------------------------

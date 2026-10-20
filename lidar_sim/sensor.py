@@ -61,8 +61,9 @@ def _poses(poses):
     return p[None, :] if p.ndim == 1 else p
 
 
-def beam_directions(poses, params=LidarParams(), beam_idx=None):
+def beam_directions(poses, params=None, beam_idx=None):
     """World-frame beam directions, shape (P, nb, 2) (or (nb, 2) for a single pose)."""
+    params = params or LidarParams()
     single = np.asarray(poses).ndim == 1
     P = _poses(poses)
     beta = params.beam_angles() if beam_idx is None else params.beam_angles()[beam_idx]
@@ -71,55 +72,64 @@ def beam_directions(poses, params=LidarParams(), beam_idx=None):
     return u[0] if single else u
 
 
-def to_world(ranges, pose, params=LidarParams(), beam_idx=None):
+def to_world(ranges, pose, params=None, beam_idx=None):
     """Body-frame ranges -> world points q = p + z u (NaN ranges stay NaN)."""
+    params = params or LidarParams()
     u = beam_directions(pose, params, beam_idx)
     return np.asarray(pose)[:2] + np.asarray(ranges)[:, None] * u
 
 
-def trace_beams(world, poses, params=LidarParams(), beam_idx=None, t=0.0):
-    """Noise-free per-beam result for one or many poses. Arrays have shape (P, nb)."""
-    w = world.at_time(t) if world.movers else world
-    P = _poses(poses)
-    u = beam_directions(P, params, beam_idx)  # (P, nb, 2)
-    nP, nb = u.shape[:2]
-    origins = np.repeat(P[:, :2], nb, axis=0)
-    dirs = u.reshape(-1, 2)
-    ret = trace(w.backend(), origins, dirs, fog_alpha=w.fog_alpha, max_bounces=params.max_bounces,
-                k=params.k_over_pth, spec_gain=params.spec_gain, lobe_deg=params.spec_lobe_deg)
-    ch = select(ret, nP * nb, params.return_policy)
+def chosen_returns(ret, n, params):
+    """Per-beam chosen return (by policy) + detection probability, as flat arrays of length n.
+
+    Shared by the 2D sensor (trace_beams) and the 3D sensor (sensor3d.scan3d).
+    """
+    ch = select(ret, n, params.return_policy)
     has = ch >= 0
     g = np.where(has, ch, 0)
 
     def pick(arr, fill):
-        out = arr[g] if len(arr) else np.zeros((len(g),) + arr.shape[1:])
-        out = np.where(has.reshape((-1,) + (1,) * (out.ndim - 1)), out, fill)
-        return out
+        out = arr[g] if len(arr) else np.zeros((n,) + arr.shape[1:])
+        return np.where(has.reshape((-1,) + (1,) * (out.ndim - 1)), out, fill)
 
     true_range = pick(ret.path_length, np.nan)
     power = pick(ret.power, 0.0)
     p_det = detection_prob(power, params.sigma_p_rel)
     p_det = np.where(np.isfinite(true_range) & (true_range >= params.r_min), p_det, 0.0)
-    shape = (nP, nb)
     return {
-        "true_range": true_range.reshape(shape),
-        "power": power.reshape(shape),
-        "p_detect": p_det.reshape(shape),
-        "true_hit": pick(ret.hit_point, np.nan).reshape(shape + (2,)),
-        "is_ghost": (pick(ret.reflections, 0) > 0).reshape(shape),
-        "transmitted": (pick(ret.interactions - ret.reflections, 0) > 0).reshape(shape),
-        "surface_id": np.where(has, pick(ret.surface_id, -1), -1).reshape(shape),
-        "dirs": u,
-        "returns": ret,
+        "true_range": true_range,
+        "power": power,
+        "p_detect": p_det,
+        "true_hit": pick(ret.hit_point, np.nan),
+        "is_ghost": pick(ret.reflections, 0) > 0,
+        "transmitted": pick(ret.interactions - ret.reflections, 0) > 0,
+        "surface_id": np.where(has, pick(ret.surface_id, -1), -1),
     }
 
 
-def scan(world, pose, params=LidarParams(), rng=None, noise=True, t=0.0, beam_idx=None):
+def trace_beams(world, poses, params=None, beam_idx=None, t=0.0):
+    """Noise-free per-beam result for one or many poses. Arrays have shape (P, nb)."""
+    params = params or LidarParams()
+    w = world.at_time(t) if world.movers else world
+    P = _poses(poses)
+    u = beam_directions(P, params, beam_idx)  # (P, nb, 2)
+    nP, nb = u.shape[:2]
+    ret = trace(w.backend(), np.repeat(P[:, :2], nb, axis=0), u.reshape(-1, 2), fog_alpha=w.fog_alpha,
+                max_bounces=params.max_bounces, k=params.k_over_pth, spec_gain=params.spec_gain,
+                lobe_deg=params.spec_lobe_deg)
+    out = {k: v.reshape((nP, nb) + v.shape[1:]) for k, v in chosen_returns(ret, nP * nb, params).items()}
+    out["dirs"] = u
+    out["returns"] = ret
+    return out
+
+
+def scan(world, pose, params=None, rng=None, noise=True, t=0.0, beam_idx=None):
     """One LiDAR scan at `pose` (time t for moving targets).
 
     noise=True draws detections (prob. P_D) and Gaussian range noise (D6); noise=False reports
     every return with P_D >= 0.5 at its exact range.
     """
+    params = params or LidarParams()
     pose = np.asarray(pose, dtype=float)
     r = trace_beams(world, pose, params, beam_idx, t)
     true_range, p_det = r["true_range"][0], r["p_detect"][0]
@@ -137,19 +147,21 @@ def scan(world, pose, params=LidarParams(), rng=None, noise=True, t=0.0, beam_id
                       returns=r["returns"], transmitted=r["transmitted"][0])
 
 
-def expected_scan(world, poses, params=LidarParams(), beam_idx=None, t=0.0):
+def expected_scan(world, poses, params=None, beam_idx=None, t=0.0):
     """Noise-free expected ranges and P_D for many poses (used by the particle filter)."""
+    params = params or LidarParams()
     r = trace_beams(world, poses, params, beam_idx, t)
     return r["true_range"], r["p_detect"]
 
 
 # --- field of view & line of sight (D4) ---------------------------------------------------
 
-def in_fov(points, pose, params=LidarParams(), world=None, r_max=None, t=0.0):
+def in_fov(points, pose, params=None, world=None, r_max=None, t=0.0):
     """Membership test q in S(x): range window, angular window, and (if world given) LOS.
 
     Glass is transparent for LOS; everything else is opaque.
     """
+    params = params or LidarParams()
     pts = np.atleast_2d(np.asarray(points, dtype=float))
     pose = np.asarray(pose, dtype=float)
     r_max = params.r_max_ref if r_max is None else r_max
@@ -165,8 +177,9 @@ def in_fov(points, pose, params=LidarParams(), world=None, r_max=None, t=0.0):
     return ok
 
 
-def visibility_polygon(pose, world, params=LidarParams(), n_rays=1000, r_max=None, t=0.0):
+def visibility_polygon(pose, world, params=None, n_rays=1000, r_max=None, t=0.0):
     """Polygon of everything inside the FOV wedge with a clear line of sight (glass transparent)."""
+    params = params or LidarParams()
     pose = np.asarray(pose, dtype=float)
     r_max = params.r_max_ref if r_max is None else r_max
     w = world.at_time(t) if world.movers else world

@@ -19,7 +19,6 @@ BLUE, ORANGE, AQUA, YELLOW, MAGENTA, GREEN, VIOLET, RED = (
     "#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948")
 SERIES = [BLUE, ORANGE, AQUA, YELLOW, MAGENTA, GREEN, VIOLET, RED]
 INK, INK2, MUTED, GRID, SURFACE = "#0b0b0b", "#52514e", "#8a8984", "#e4e3df", "#ffffff"
-SEQ_BLUE = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]
 
 # roles
 C_REAL, C_GHOST, C_THIRD = BLUE, ORANGE, AQUA
@@ -203,10 +202,7 @@ def animate(fig, update, n_frames, out_path, fps=10, dpi=None):
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     anim = FuncAnimation(fig, update, frames=n_frames, blit=False)
-    if out_path.suffix == ".mp4":
-        writer = FFMpegWriter(fps=fps, bitrate=2400)
-    else:
-        writer = PillowWriter(fps=fps)
+    writer = FFMpegWriter(fps=fps, bitrate=2400) if out_path.suffix == ".mp4" else PillowWriter(fps=fps)
     if dpi is None:
         dpi = 130 if out_path.suffix == ".mp4" else 80
     anim.save(out_path, writer=writer, dpi=dpi)

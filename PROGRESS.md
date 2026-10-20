@@ -1,8 +1,32 @@
-# Progress Log
+# Progress
 
-One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom.
+## Status (2026-10-20)
+
+**Code, experiments and media: done.**
+- Simulator: 2D + 3D LiDAR with mirrors, glass, fog and a moving target; particle-filter localization.
+- Experiments: all 13, plus the CPT.
+- Demo tools: slider app, demo board, room tour.
+- Notebook: runs top to bottom.
+- Tests: 136 passing; lint clean.
+- Media: both people's sets regenerated with the final model (`figures/ammar/`, `figures/partner/`).
+- Math doc and partner page: reconciled after 4 review rounds.
+
+## What's left
+
+- [ ] **Each person writes their own report** (5–10 pages, Word or LaTeX; outline in `docs/01_PROJECT_PLAN.md` §8). Paste tables from `figures/<you>/*.md`; `params_table.md` covers the Procedure section.
+- [ ] **Pick figures** per the split in `docs/01_PROJECT_PLAN.md` §7. Headline results: E11 (localization), E12/E13 (3D).
+- [ ] **Report diagrams:** a Bayesian-network figure (required "form from class"), a Figure 1 mapping and a pipeline diagram. These exist only as text/ASCII in `docs/02_DERIVATIONS.md`, plus the drawing on the partner page.
+- [ ] **Partner:** read the derivations (page or `docs/02_DERIVATIONS.md`) and write the theory section, including **D11**, which is required at the 5810 level.
+- [ ] **Review [DECISIONS.md](DECISIONS.md)** and mark each one keep/change.
+- [ ] **Check references** (`docs/01_PROJECT_PLAN.md` §11) and format them in IEEE style.
+- [ ] **Submit:** report PDF + videos to Canvas; code appendix = `notebooks/lidar_walkthrough.html` printed to PDF (regenerate it first).
+- [ ] *Optional:* ICP baseline (DECISIONS #8).
 
 ---
+
+## Build log (oldest first)
+
+Paths in entries before 2026-10-20 predate the reorganisation: `plan/` is now `docs/`, `experiments/interactive.py` and `demo_*.py` are now in `demo/`, and `DECISIONS_NEEDED.md` is now `DECISIONS.md`.
 
 ## 2026-10-19 — Stage 0: Setup ✅
 
@@ -280,3 +304,32 @@ One entry per stage/session (see plan/03_CODE_PLAN.md §7). Newest at the bottom
 - Notebook re-executed to HTML (summary table intact).
 
 **Tests:** 114 passed.
+
+
+## 2026-10-20 — Cleanup and reorganisation ✅
+
+**Layout**
+- `plan/` → `docs/`; `DECISIONS_NEEDED.md` → `DECISIONS.md`, rewritten in plain English with tradeoffs and recommendations.
+- New `demo/` package: `interactive.py` (slider app), `board.py` (demo board), and `tour.py`, which merges the old demo_scan + demo_animation and now works for both scenes, so the partner also gets `tour.gif`.
+- Course PDFs → `course_materials/` (git-ignored).
+
+**Removed** (unused): `experiments/smoke.py`, `lidar_sim/localization/icp.py` (empty stub), `geometry.unit`, `viz.SEQ_BLUE`, the `.gitkeep` files.
+
+**Refactors**
+- The tracer now calls `physics.diffuse_power` / `specular_power`, so there's one source for the power formulas.
+- `sensor.chosen_returns` is shared by the 2D and 3D sensors.
+- `params=None` defaults.
+- CPT outputs are now named `cpt_heatmap.png` / `cpt_table.*`.
+
+**Tooling**
+- ruff config in `pyproject.toml` (`uvx ruff check .` passes).
+- The smoke test auto-discovers every module.
+- New tour test.
+
+**Docs**
+- README rewritten: quick start for the teammate, demo options, results, architecture, a map of every file.
+- New AGENTS.md (+ CLAUDE.md), and this status section.
+
+**Git:** history rewritten to drop AI co-author trailers; only the human author is listed.
+
+**Tests:** 136 passed.

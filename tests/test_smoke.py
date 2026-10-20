@@ -1,36 +1,25 @@
-"""Stage 0 smoke test: the environment and package skeleton import cleanly."""
+"""Smoke tests: every module imports, and the scientific stack (incl. MP4 export, Embree) works."""
 
 import importlib
 
 import pytest
 
-MODULES = [
-    "lidar_sim",
-    "lidar_sim.config",
-    "lidar_sim.geometry",
-    "lidar_sim.materials",
-    "lidar_sim.world",
-    "lidar_sim.scenes",
-    "lidar_sim.physics",
-    "lidar_sim.raytrace",
-    "lidar_sim.sensor",
-    "lidar_sim.noise",
-    "lidar_sim.viz",
-    "lidar_sim.viz3d",
-    "lidar_sim.scenes3d",
-    "lidar_sim.sensor3d",
-    "lidar_sim.backends",
-    "lidar_sim.backends.base",
-    "lidar_sim.backends.segments2d",
-    "lidar_sim.backends.mesh3d",
-    "lidar_sim.localization",
-    "lidar_sim.localization.motion",
-    "lidar_sim.localization.likelihood",
-    "lidar_sim.localization.particle_filter",
-    "lidar_sim.localization.icp",
-    "experiments",
-    "experiments.common",
-]
+def _all_modules():
+    """Every module in the three packages, discovered automatically."""
+    import pkgutil
+
+    import demo
+    import experiments
+    import lidar_sim
+
+    names = []
+    for pkg in (lidar_sim, experiments, demo):
+        names.append(pkg.__name__)
+        names += [m.name for m in pkgutil.walk_packages(pkg.__path__, pkg.__name__ + ".")]
+    return names
+
+
+MODULES = _all_modules()
 
 
 @pytest.mark.parametrize("name", MODULES)

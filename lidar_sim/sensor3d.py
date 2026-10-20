@@ -11,9 +11,9 @@ import numpy as np
 
 from . import config
 from .geometry import rot3d
-from .noise import detection_prob, sample_measurement
-from .raytrace import Returns, select, trace
-from .sensor import LidarParams
+from .noise import sample_measurement
+from .raytrace import Returns, trace
+from .sensor import LidarParams, chosen_returns
 
 
 @dataclass(frozen=True)
@@ -54,15 +54,18 @@ class ScanResult3D:
     returns: Returns
 
 
-def ring_directions(pose, params=LidarParams3D()):
+def ring_directions(pose, params=None):
     """World-frame unit directions, shape (n_rings, n_az, 3)."""
+    params = params or LidarParams3D()
     E, A = np.meshgrid(params.elevations(), params.azimuths(), indexing="ij")
     b = np.stack([np.cos(E) * np.cos(A), np.cos(E) * np.sin(A), np.sin(E)], axis=-1)
     R = rot3d(yaw=pose[2], pitch=np.radians(params.tilt_deg))
     return b @ R.T
 
 
-def scan3d(scene, pose, params=LidarParams3D(), rng=None, noise=True):
+def scan3d(scene, pose, params=None, rng=None, noise=True):
+    """One 3D scan at pose (x, y, yaw); arrays shaped (n_rings, n_az)."""
+    params = params or LidarParams3D()
     pose = np.asarray(pose, dtype=float)
     origin = np.array([pose[0], pose[1], params.height])
     u = ring_directions(pose, params)
@@ -72,18 +75,8 @@ def scan3d(scene, pose, params=LidarParams3D(), rng=None, noise=True):
     ret = trace(scene.backend(), np.tile(origin, (n, 1)), dirs, fog_alpha=scene.fog_alpha,
                 max_bounces=params.max_bounces, k=params.k_over_pth, spec_gain=params.spec_gain,
                 lobe_deg=params.spec_lobe_deg)
-    ch = select(ret, n, params.return_policy)
-    has = ch >= 0
-    g = np.where(has, ch, 0)
-
-    def pick(arr, fill):
-        out = arr[g] if len(arr) else np.zeros((n,) + arr.shape[1:])
-        return np.where(has.reshape((-1,) + (1,) * (out.ndim - 1)), out, fill)
-
-    true_range = pick(ret.path_length, np.nan)
-    power = pick(ret.power, 0.0)
-    p_det = detection_prob(power, params.sigma_p_rel)
-    p_det = np.where(np.isfinite(true_range) & (true_range >= params.r_min), p_det, 0.0)
+    c = chosen_returns(ret, n, params)
+    true_range, p_det = c["true_range"], c["p_detect"]
     if noise:
         rng = np.random.default_rng() if rng is None else rng
         z, det = sample_measurement(true_range, p_det, rng, params.sigma_r, params.r_min)
@@ -94,8 +87,6 @@ def scan3d(scene, pose, params=LidarParams3D(), rng=None, noise=True):
     return ScanResult3D(
         pose=pose, origin=origin, elevations=params.elevations(), azimuths=params.azimuths(),
         ranges=z.reshape(shape), true_ranges=true_range.reshape(shape), detected=det.reshape(shape),
-        power=power.reshape(shape), p_detect=p_det.reshape(shape), points_world=pts.reshape(shape + (3,)),
-        true_hits=pick(ret.hit_point, np.nan).reshape(shape + (3,)),
-        is_ghost=(pick(ret.reflections, 0) > 0).reshape(shape),
-        transmitted=(pick(ret.interactions - ret.reflections, 0) > 0).reshape(shape),
-        surface_id=np.where(has, pick(ret.surface_id, -1), -1).reshape(shape), returns=ret)
+        power=c["power"].reshape(shape), p_detect=p_det.reshape(shape), points_world=pts.reshape(shape + (3,)),
+        true_hits=c["true_hit"].reshape(shape + (3,)), is_ghost=c["is_ghost"].reshape(shape),
+        transmitted=c["transmitted"].reshape(shape), surface_id=c["surface_id"].reshape(shape), returns=ret)

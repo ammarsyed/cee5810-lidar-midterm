@@ -1,7 +1,7 @@
 """Scene geometry: Segment, Box, World, and moving targets (2D)."""
 
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
-from typing import Callable
 
 import numpy as np
 

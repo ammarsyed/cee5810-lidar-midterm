@@ -1,6 +1,6 @@
 """Batched, breadth-first, backend-agnostic ray tracer that turns beams into returns.
 
-Rules (plan/03_CODE_PLAN.md section 5):
+Rules (docs/03_CODE_PLAN.md section 5):
 - every hit on a surface with rho > 0 makes a diffuse return; matte surfaces stop the ray
 - mirror and glass hits make a head-on specular-lobe return and spawn child rays:
   mirror -> reflected (x R_m); glass -> straight through (x (1-R_F)^2) and reflected (x R_F)
@@ -14,7 +14,7 @@ import numpy as np
 
 from . import config
 from .materials import GLASS, MIRROR
-from .physics import fresnel, reflect
+from .physics import diffuse_power, fresnel, reflect, specular_power
 
 
 @dataclass
@@ -42,8 +42,16 @@ def _concat(parts, d):
         e = np.zeros(0)
         return Returns(e.astype(int), e, e, np.zeros((0, d)), np.zeros((0, d)), e.astype(int), e.astype(int),
                        e.astype(int), e.astype(int), e, e.astype(int))
-    cols = list(zip(*parts))
+    cols = list(zip(*parts, strict=True))
     return Returns(*(np.concatenate(c) for c in cols))
+
+
+def _emit(parts, hit, mask, power, kind):
+    """Append the returns selected by `mask` (a field order matching Returns)."""
+    if mask.any():
+        parts.append((hit["beam"][mask], hit["L"][mask], power[mask], hit["pt"][mask], hit["apparent"][mask],
+                      hit["sid"][mask], np.full(mask.sum(), kind), hit["n_ref"][mask], hit["n_int"][mask],
+                      hit["theta"][mask], hit["refl_id"][mask]))
 
 
 def trace(backend, origins, dirs, *, fog_alpha=0.0, max_bounces=config.MAX_BOUNCES,
@@ -56,7 +64,6 @@ def trace(backend, origins, dirs, *, fog_alpha=0.0, max_bounces=config.MAX_BOUNC
     if eps_self is None:
         eps_self = config.EPS_SELF_2D if d == 2 else config.EPS_SELF_3D
     mat = backend.mat
-    w2 = 2.0 * np.radians(lobe_deg) ** 2
     sensor_o, u0 = origins, dirs
 
     o, u = origins, dirs
@@ -84,22 +91,17 @@ def trace(backend, origins, dirs, *, fog_alpha=0.0, max_bounces=config.MAX_BOUNC
         theta = np.arccos(cosi)
         code = mat.code[sid]
         rho = mat.rho[sid]
-        base = k * T * T * np.exp(-2.0 * fog_alpha * Lh) / (Lh * Lh)
-        apparent = sensor_o[beam] + Lh[:, None] * u0[beam]
+        hit = dict(beam=beam, L=Lh, pt=pt, apparent=sensor_o[beam] + Lh[:, None] * u0[beam], sid=sid,
+                   n_ref=n_ref, n_int=n_int, theta=theta, refl_id=refl_id)
 
-        def emit(mask, power, kind):
-            if mask.any():
-                parts.append((beam[mask], Lh[mask], power[mask], pt[mask], apparent[mask], sid[mask],
-                              np.full(mask.sum(), kind), n_ref[mask], n_int[mask], theta[mask], refl_id[mask]))
-
-        p_diff = base * rho * cosi
-        emit((rho > 0) & (p_diff > min_power), p_diff, 0)
+        p_diff = diffuse_power(Lh, rho, cosi, T, fog_alpha, k)  # D5
+        _emit(parts, hit, (rho > 0) & (p_diff > min_power), p_diff, 0)
 
         is_m, is_g = code == MIRROR, code == GLASS
-        RF = np.where(is_g, fresnel(cosi, 1.0, mat.n[sid]), 0.0)
-        Rs = np.where(is_m, mat.reflectance[sid], RF)
-        p_spec = base * spec_gain * Rs * np.exp(-theta * theta / w2)
-        emit((is_m | is_g) & (p_spec > min_power), p_spec, 1)
+        RF = np.where(is_g, fresnel(cosi, 1.0, mat.n[sid]), 0.0)  # D9
+        R_spec = np.where(is_m, mat.reflectance[sid], RF)
+        p_spec = specular_power(Lh, R_spec, theta, T, fog_alpha, k, spec_gain, lobe_deg)  # D5 specular lobe
+        _emit(parts, hit, (is_m | is_g) & (p_spec > min_power), p_spec, 1)
 
         if depth == max_bounces:
             break

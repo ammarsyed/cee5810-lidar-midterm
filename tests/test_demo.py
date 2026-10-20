@@ -1,11 +1,11 @@
-"""Stage 9a: the slider demo builds headless and responds to its controls."""
+"""Demo tools: the slider app builds headless and responds to its controls; the room tour renders."""
 
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-from experiments.interactive import build, set_values  # noqa: E402
+from demo.interactive import build, set_values  # noqa: E402
 
 
 def test_build_and_fog_slider_reduces_detections():
@@ -27,3 +27,13 @@ def test_moving_the_sensor_changes_the_scan_and_variant_b_builds():
     fig, c = build("variant_b")
     assert c["state"]["scan"] is not None
     plt.close(fig)
+
+
+def test_room_tour_snapshot_for_both_scenes():
+    from demo import tour
+
+    for scene in ("default", "variant_b"):
+        res = tour.snapshot(scene)
+        s = res["data"]["scan"]
+        assert (s.detected & s.is_ghost).any(), scene  # the tour pose is chosen to show mirror ghosts
+        plt.close("all")

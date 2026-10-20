@@ -36,12 +36,6 @@ def wrap_angle(a):
     return (np.asarray(a) + np.pi) % (2.0 * np.pi) - np.pi
 
 
-def unit(v):
-    """Normalise vectors along the last axis."""
-    v = np.asarray(v, dtype=float)
-    return v / np.linalg.norm(v, axis=-1, keepdims=True)
-
-
 def ray_segment_intersect(origins, dirs, A, B, t_min=1e-9):
     """Ray-segment intersection for every (ray, segment) pair, D3(c).
 

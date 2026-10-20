@@ -1,6 +1,6 @@
 """Surface materials: matte (Lambertian), mirror, glass.
 
-Mirrors and glass are modelled as two-sided thin surfaces (see DECISIONS_NEEDED.md).
+Mirrors and glass are modelled as two-sided thin surfaces (see DECISIONS.md #1).
 """
 
 from dataclasses import dataclass
